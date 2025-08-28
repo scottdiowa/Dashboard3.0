@@ -1,0 +1,1009 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus, Edit, Trash2, TrendingUp, TrendingDown, Calendar, Eye } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useToast } from '@/hooks/use-toast'
+import { formatCurrency, formatPercentage, formatDate } from '@/lib/utils'
+import { chartFormatters, chartColors, chartDefaults, getDateRange } from '@/lib/chart-utils'
+import { ChartCard } from '@/components/ui/chart-card'
+import { FilterToolbar, useFilters } from '@/components/ui/filter-toolbar'
+import { omegaDailySchema, type OmegaDailyFormData } from '@/lib/schemas'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Bar, ReferenceLine } from 'recharts'
+import { supabase } from '@/lib/supabase'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
+export const Route = createFileRoute('/omega-daily')({
+  component: OmegaDailyPage,
+})
+
+type OmegaDailyRow = {
+  id: string
+  store_id: string
+  business_date: string
+  net_sales: number
+  last_year_sales: number
+  labor_hours: number
+  ideal_labor_hours: number
+  labor_percentage: number
+  food_variance_cost: number
+  waste_amount: number
+  breakfast_sales: number
+  night_sales: number
+}
+
+function OmegaDailyPage() {
+
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingEntry, setEditingEntry] = useState<any>(null)
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [storeId, setStoreId] = useState<string | null>(null)
+
+  // Use the new filter hook with persistence
+  const filters = useFilters('omega-daily', 'last30')
+
+  // Sample data generator
+  const generateSampleData = async () => {
+    if (!storeId) {
+      toast({
+        title: 'Store not linked',
+        description: 'Please link your account to a store first.',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    try {
+      const sampleEntries = []
+      const today = new Date()
+
+      // Generate 10 days of sample data
+      for (let i = 9; i >= 0; i--) {
+        const date = new Date(today)
+        date.setDate(date.getDate() - i)
+
+        sampleEntries.push({
+          store_id: storeId,
+          business_date: date.toISOString().slice(0, 10),
+          net_sales: Math.floor(Math.random() * 5000) + 8000, // $8K-13K
+          last_year_sales: Math.floor(Math.random() * 4000) + 7000, // $7K-11K
+          labor_hours: Math.floor(Math.random() * 40) + 60, // 60-100 hours
+          ideal_labor_hours: Math.floor(Math.random() * 30) + 50, // 50-80 hours
+          labor_percentage: Math.floor(Math.random() * 10) + 15, // 15-25%
+          food_variance_cost: Math.floor(Math.random() * 200) - 100, // -$100 to +$100
+          waste_amount: Math.floor(Math.random() * 100) + 50, // $50-150
+          breakfast_sales: Math.floor(Math.random() * 1000) + 500, // $500-1500
+          night_sales: Math.floor(Math.random() * 1500) + 1000, // $1000-2500
+        })
+      }
+
+      const { error } = await supabase
+        .from('omega_daily')
+        .insert(sampleEntries)
+
+      if (error) throw error
+
+      toast({
+        title: 'Sample data added!',
+        description: '10 days of sample OMEGA entries have been created.',
+      })
+
+      // Invalidate and refetch data
+      queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
+
+    } catch (error: any) {
+      toast({
+        title: 'Error adding sample data',
+        description: error.message,
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Manual refresh function
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ['omega_daily', storeId] })
+    toast({
+      title: 'Refreshing data...',
+      description: 'Reloading your OMEGA entries.',
+    })
+  }
+
+  const form = useForm<OmegaDailyFormData>({
+    resolver: zodResolver(omegaDailySchema),
+    defaultValues: {
+      business_date: new Date().toISOString().slice(0, 10),
+      net_sales: 0,
+      last_year_sales: 0,
+      labor_hours: 0,
+      ideal_labor_hours: 0,
+      labor_percentage: 0,
+      food_variance_cost: 0,
+      waste_amount: 0,
+      breakfast_sales: 0,
+      night_sales: 0,
+    },
+  })
+
+  const insertMutation = useMutation({
+    mutationFn: async (payload: OmegaDailyFormData) => {
+      if (!storeId) {
+        throw new Error('No store is linked to your account. See Setup to link one.')
+      }
+      const { error } = await supabase.from('omega_daily').insert({
+        store_id: storeId,
+        business_date: payload.business_date, // 'YYYY-MM-DD'
+        net_sales: payload.net_sales,
+        last_year_sales: payload.last_year_sales,
+        labor_hours: payload.labor_hours,
+        ideal_labor_hours: payload.ideal_labor_hours,
+        labor_percentage: payload.labor_percentage,
+        food_variance_cost: payload.food_variance_cost,
+        waste_amount: payload.waste_amount,
+        breakfast_sales: payload.breakfast_sales,
+        night_sales: payload.night_sales,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast({ title: 'Success!', description: 'Daily metrics saved successfully.' })
+      setIsFormOpen(false)
+      setEditingEntry(null)
+      form.reset()
+      queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
+    },
+    onError: (error: any) => {
+      toast({ title: 'Save failed', description: error.message, variant: 'destructive' })
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: OmegaDailyFormData }) => {
+      if (!storeId) {
+        throw new Error('No store is linked to your account. See Setup to link one.')
+      }
+      const { error } = await supabase.from('omega_daily').update({
+        business_date: payload.business_date,
+        net_sales: payload.net_sales,
+        last_year_sales: payload.last_year_sales,
+        labor_hours: payload.labor_hours,
+        ideal_labor_hours: payload.ideal_labor_hours,
+        labor_percentage: payload.labor_percentage,
+        food_variance_cost: payload.food_variance_cost,
+        waste_amount: payload.waste_amount,
+        breakfast_sales: payload.breakfast_sales,
+        night_sales: payload.night_sales,
+      }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast({ title: 'Updated!', description: 'Daily metrics updated successfully.' })
+      setIsFormOpen(false)
+      setEditingEntry(null)
+      form.reset()
+      queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
+    },
+    onError: (error: any) => {
+      toast({ title: 'Update failed', description: error.message, variant: 'destructive' })
+    }
+  })
+
+  const onSubmit = (data: OmegaDailyFormData) => {
+    if (editingEntry) {
+      updateMutation.mutate({ id: editingEntry.id, payload: data })
+    } else {
+      insertMutation.mutate(data)
+    }
+  }
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('omega_daily').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast({ title: 'Deleted', description: 'Daily metrics entry removed.' })
+      queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
+    },
+    onError: (error: any) => {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' })
+    }
+  })
+  // Resolve store_id for current user
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const { data: auth } = await supabase.auth.getUser()
+      const userId = auth.user?.id
+      if (!userId) {
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('store_id')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (!active) return
+
+      if (error) {
+        toast({
+          title: 'Connection Error',
+          description: 'Unable to connect to your store. Please check your setup.',
+          variant: 'destructive'
+        })
+        return
+      }
+
+      setStoreId(data?.store_id ?? null)
+
+      if (!data?.store_id) {
+        toast({
+          title: 'Store Not Linked',
+          description: 'Your account isn\'t linked to a store yet. Please go to Setup to link your account.',
+          variant: 'destructive'
+        })
+      }
+    })()
+    return () => { active = false }
+  }, [])
+
+  // Get date range from filter hook
+  const dateRangeFilter = filters.getDateRangeFilter()
+
+  // Load filtered entries (scoped to store and date filter if available)
+  const { data: omegaEntries = [], isLoading, error } = useQuery<OmegaDailyRow[]>({
+    queryKey: ['omega_daily', storeId, dateRangeFilter?.start, dateRangeFilter?.end],
+    queryFn: async () => {
+      if (!storeId) {
+        return []
+      }
+      
+      let query = supabase
+        .from('omega_daily')
+        .select('*')
+        .eq('store_id', storeId)
+
+      if (dateRangeFilter) {
+        query = query
+          .gte('business_date', dateRangeFilter.start)
+          .lte('business_date', dateRangeFilter.end)
+      }
+
+      const { data, error } = await query
+        .order('business_date', { ascending: false })
+        .limit(100) // Limit to prevent too much data
+
+      if (error) {
+        throw error
+      }
+
+      return data as OmegaDailyRow[]
+    },
+    enabled: !!storeId, // Only run when we have a store ID
+  })
+
+  // Load chart data (always last 30 days, independent of filters)
+  const { data: chartData = [] } = useQuery<OmegaDailyRow[]>({
+    queryKey: ['omega_daily_charts', storeId],
+    queryFn: async () => {
+      if (!storeId) return []
+
+      // Calculate date 30 days ago
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const startDate = thirtyDaysAgo.toISOString().slice(0, 10)
+
+      const { data, error } = await supabase
+        .from('omega_daily')
+        .select('*')
+        .eq('store_id', storeId)
+        .gte('business_date', startDate)
+        .order('business_date', { ascending: true })
+
+      if (error) {
+        throw error
+      }
+
+      return data as OmegaDailyRow[]
+    },
+    enabled: !!storeId,
+  })
+
+  // Load Month-to-Date data for KPI cards
+  const { data: mtdData = [] } = useQuery<OmegaDailyRow[]>({
+    queryKey: ['omega_daily_mtd', storeId],
+    queryFn: async () => {
+      if (!storeId) return []
+
+      const { start, end } = getDateRange('mtd')
+      const { data, error } = await supabase
+        .from('omega_daily')
+        .select('*')
+        .eq('store_id', storeId)
+        .gte('business_date', start)
+        .lte('business_date', end)
+        .order('business_date', { ascending: true })
+
+      if (error) {
+        throw error
+      }
+
+      return data as OmegaDailyRow[]
+    },
+    enabled: !!storeId,
+  })
+
+
+  // Helper: apply a specific date filter via toolbar state
+  const applyDateFilter = (isoDate?: string) => {
+    if (!isoDate) return
+    filters.handleRangeChange('custom')
+    filters.handleDateChange(new Date(isoDate))
+  }
+  // Chart data always uses last 30 days, independent of filters
+  const chartDataCompSales = useMemo(() => {
+    if (!chartData.length) return []
+
+    return chartData.map((r) => ({
+      date: chartFormatters.dateShort(r.business_date),
+      dateFull: chartFormatters.dateFull(r.business_date),
+      isoDate: typeof r.business_date === 'string' ? r.business_date : (r.business_date as unknown as string),
+      comp_net_sales: (r.net_sales ?? 0) - (r.last_year_sales ?? 0),
+    }))
+  }, [chartData])
+
+  const chartDataWasteFood = useMemo(() => {
+    if (!chartData.length) return []
+
+    return chartData.map((r) => ({
+      date: chartFormatters.dateShort(r.business_date),
+      dateFull: chartFormatters.dateFull(r.business_date),
+      isoDate: typeof r.business_date === 'string' ? r.business_date : (r.business_date as unknown as string),
+      waste_percentage: r.net_sales ? (r.waste_amount / r.net_sales) * 100 : 0,
+      food_variance_percentage: r.net_sales ? (r.food_variance_cost / r.net_sales) * 100 : 0,
+    }))
+  }, [chartData])
+
+  const handleEdit = (entry: any) => {
+    setEditingEntry(entry)
+    
+    // Convert all values explicitly, handling strings from database
+    const formData = {
+      business_date: entry.business_date || new Date().toISOString().slice(0, 10),
+      net_sales: entry.net_sales != null ? Number(entry.net_sales) : 0,
+      last_year_sales: entry.last_year_sales != null ? Number(entry.last_year_sales) : 0,
+      labor_hours: entry.labor_hours != null ? Number(entry.labor_hours) : 0,
+      ideal_labor_hours: entry.ideal_labor_hours != null ? Number(entry.ideal_labor_hours) : 0,
+      labor_percentage: entry.labor_percentage != null ? Number(entry.labor_percentage) : 0,
+      food_variance_cost: entry.food_variance_cost != null ? Number(entry.food_variance_cost) : 0,
+      waste_amount: entry.waste_amount != null ? Number(entry.waste_amount) : 0,
+      breakfast_sales: entry.breakfast_sales != null ? Number(entry.breakfast_sales) : 0,
+      night_sales: entry.night_sales != null ? Number(entry.night_sales) : 0,
+    }
+    
+    form.reset(formData)
+    setIsFormOpen(true)
+  }
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id)
+  }
+
+  // Calculate computed values for form preview
+  const watchValues = form.watch()
+  const compNetSales = watchValues.net_sales - watchValues.last_year_sales
+  const laborHoursDiff = watchValues.labor_hours - watchValues.ideal_labor_hours
+  const foodVariancePercentage = watchValues.net_sales > 0 ? (watchValues.food_variance_cost / watchValues.net_sales) * 100 : 0
+  const wastePercentage = watchValues.net_sales > 0 ? (watchValues.waste_amount / watchValues.net_sales) * 100 : 0
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-wendys-charcoal">Omega Daily</h1>
+          <p className="text-gray-600">
+            Daily business metrics and performance tracking
+          </p>
+        </div>
+        <div className="flex gap-2">
+        <Button onClick={() => {
+          setEditingEntry(null)
+          form.reset({
+            business_date: new Date().toISOString().slice(0, 10),
+            net_sales: 0,
+            last_year_sales: 0,
+            labor_hours: 0,
+            ideal_labor_hours: 0,
+            labor_percentage: 0,
+            food_variance_cost: 0,
+            waste_amount: 0,
+            breakfast_sales: 0,
+            night_sales: 0,
+          })
+          setIsFormOpen(true)
+        }} className="wendys-button">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Daily Entry
+        </Button>
+          {storeId && (
+            <>
+              <Button
+                onClick={generateSampleData}
+                variant="outline"
+                size="sm"
+                className="border-wendys-red text-wendys-red hover:bg-wendys-red hover:text-white"
+              >
+                Sample Data
+              </Button>
+              <Button
+                onClick={refreshData}
+                variant="outline"
+                size="sm"
+                className="border-gray-400 text-gray-600 hover:bg-gray-100"
+              >
+                Refresh
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Key Metrics (Month-to-Date) */}
+      <div className="wendys-card">
+        {(() => {
+          const mtdNetSales = mtdData.reduce((sum, e) => sum + (Number(e.net_sales) || 0), 0)
+          const mtdLaborPct = mtdData.length > 0
+            ? (mtdData.reduce((sum, e) => sum + (Number(e.labor_percentage) || 0), 0) / mtdData.length)
+            : 0
+          const totalWaste = mtdData.reduce((sum, e) => sum + (Number(e.waste_amount) || 0), 0)
+          const mtdWastePct = mtdNetSales > 0 ? (totalWaste / mtdNetSales) * 100 : 0
+
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <p className="text-sm text-gray-600">MTD Net Sales</p>
+                <p className="mt-1 text-3xl font-bold text-wendys-charcoal">{formatCurrency(mtdNetSales)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">MTD Labor %</p>
+                <p className="mt-1 text-3xl font-bold text-wendys-charcoal">{formatPercentage(mtdLaborPct)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">MTD Waste %</p>
+                <p className="mt-1 text-3xl font-bold text-wendys-charcoal">{formatPercentage(mtdWastePct)}</p>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
+
+      {/* Filter Toolbar */}
+      <FilterToolbar
+        selectedRange={filters.selectedRange}
+        selectedDate={filters.selectedDate}
+        onRangeChange={filters.handleRangeChange}
+        onDateChange={filters.handleDateChange}
+        onClearFilters={filters.clearFilters}
+      />
+
+      {error && (
+        <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+          Error loading data: {error.message}
+        </div>
+      )}
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Comp Net Sales Chart */}
+        <ChartCard
+          title="Comp Net Sales Trend"
+          subtitle="Last 30 days"
+          loading={!chartData.length && !error}
+          error={error?.message}
+        >
+          {chartDataCompSales.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartDataCompSales}>
+                <CartesianGrid {...chartDefaults.cartesianGrid} />
+                <XAxis dataKey="date" {...chartDefaults.xAxis} />
+                <YAxis {...chartDefaults.yAxis} tickFormatter={(value) => chartFormatters.currencyCompact(value)} />
+                <Tooltip 
+                  {...chartDefaults.tooltip}
+                  formatter={(value) => [chartFormatters.currencyDetailed(value as number), 'Comp Sales']}
+                  labelFormatter={(label, payload: any) => (payload && payload[0] && payload[0].payload?.dateFull) || label}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="comp_net_sales" 
+                  stroke={chartColors.sales} 
+                  strokeWidth={2} 
+                  dot={{ fill: chartColors.sales, strokeWidth: 2, r: 3 }}
+                  activeDot={{ r: 5, stroke: chartColors.salesSecondary, strokeWidth: 2 }}
+                  onClick={(d: any) => applyDateFilter(d?.payload?.isoDate)}
+                />
+            </LineChart>
+          </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="text-center">
+                <p>No chart data available</p>
+                <p className="text-sm mt-1">Add some entries to see trends</p>
+        </div>
+            </div>
+          )}
+        </ChartCard>
+
+        {/* Waste Percentage Chart */}
+        <ChartCard
+          title="Waste Percentage"
+          subtitle="Last 30 days"
+          loading={!chartData.length && !error}
+          error={error?.message}
+        >
+          {chartDataWasteFood.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={chartDataWasteFood}>
+                <CartesianGrid {...chartDefaults.cartesianGrid} />
+                <XAxis dataKey="date" {...chartDefaults.xAxis} />
+                <YAxis {...chartDefaults.yAxis} tickFormatter={(value) => chartFormatters.percent(value)} />
+                <Tooltip 
+                  {...chartDefaults.tooltip}
+                  formatter={(value) => [chartFormatters.percent(value as number, 2), 'Waste %']}
+                  labelFormatter={(label, payload: any) => (payload && payload[0] && payload[0].payload?.dateFull) || label}
+                />
+                <ReferenceLine y={0.5} stroke={chartColors.textSecondary} strokeDasharray="4 4" label={{ value: 'Goal 0.5%', position: 'right', fill: chartColors.textSecondary, fontSize: 12 }} />
+                <Bar dataKey="waste_percentage" fill={chartColors.waste} opacity={0.7} onClick={(d: any) => applyDateFilter(d?.payload?.isoDate)} />
+            </ComposedChart>
+          </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="text-center">
+                <p>No chart data available</p>
+                <p className="text-sm mt-1">Add some entries to see trends</p>
+        </div>
+            </div>
+          )}
+        </ChartCard>
+
+        {/* Food Variance Percentage Chart */}
+        <ChartCard
+          title="Food Variance"
+          subtitle="Last 30 days"
+          loading={!chartData.length && !error}
+          error={error?.message}
+        >
+          {chartDataWasteFood.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartDataWasteFood}>
+                <CartesianGrid {...chartDefaults.cartesianGrid} />
+                <XAxis dataKey="date" {...chartDefaults.xAxis} />
+                <YAxis {...chartDefaults.yAxis} tickFormatter={(value) => chartFormatters.percent(value)} />
+                <Tooltip 
+                  {...chartDefaults.tooltip}
+                  formatter={(value) => [chartFormatters.percent(value as number, 2), 'Food Variance %']}
+                  labelFormatter={(label, payload: any) => (payload && payload[0] && payload[0].payload?.dateFull) || label}
+                />
+                <ReferenceLine y={0} stroke={chartColors.textSecondary} strokeDasharray="4 4" label={{ value: 'Target 0%', position: 'right', fill: chartColors.textSecondary, fontSize: 12 }} />
+                <Line 
+                  type="monotone" 
+                  dataKey="food_variance_percentage" 
+                  stroke={chartColors.foodVariance} 
+                  strokeWidth={2}
+                  dot={{ fill: chartColors.foodVariance, strokeWidth: 2, r: 3 }}
+                  activeDot={{ r: 5, stroke: chartColors.warning, strokeWidth: 2 }}
+                  onClick={(d: any) => applyDateFilter(d?.payload?.isoDate)}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="text-center">
+                <p>No chart data available</p>
+                <p className="text-sm mt-1">Add some entries to see trends</p>
+              </div>
+            </div>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Data Table */}
+      <div className="wendys-card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-wendys-charcoal">
+            {filters.selectedRange === 'last30' ? 'All Entries' : 'Filtered Entries'}
+        </h3>
+          <div className="text-sm text-gray-600 flex items-center">
+            {isLoading ? 'Loading...' : `${omegaEntries.length} entries`}
+            {filters.selectedRange !== 'last30' && 
+              ` for ${filters.getSelectedLabel()}`
+            }
+            {(filters.selectedRange !== 'last30' || filters.selectedDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={filters.clearFilters}
+                className="ml-3 text-xs text-gray-600 hover:text-gray-900"
+              >
+                Show All
+              </Button>
+            )}
+          </div>
+        </div>
+
+
+
+        {omegaEntries?.length === 0 && !isLoading ? (
+          <div className="text-center py-8">
+            <div className="text-gray-500 mb-4">
+              {storeId ? (
+                <div>
+                  <p className="text-lg font-medium">No data found</p>
+                  <p className="text-sm mt-2">
+                    {filters.selectedRange === 'last30'
+                      ? "You haven't added any daily entries yet."
+                      : `No entries found for the selected filter. Try changing the filter or adding a new entry.`
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-lg font-medium">Store not connected</p>
+                  <p className="text-sm mt-2">Please go to Setup to link your account to a store first.</p>
+                </div>
+              )}
+            </div>
+            {storeId && (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={() => setIsFormOpen(true)} className="wendys-button">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Entry
+                </Button>
+                <Button
+                  onClick={generateSampleData}
+                  variant="outline"
+                  className="border-wendys-red text-wendys-red hover:bg-wendys-red hover:text-white"
+                >
+                  Generate Sample Data
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Net Sales</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Comp Sales</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Labor Hours</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Labor %</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Food Variance</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Waste</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {omegaEntries.map((entry) => {
+                const comp_net_sales = (entry.net_sales ?? 0) - (entry.last_year_sales ?? 0)
+                const food_variance_percentage = entry.net_sales ? (entry.food_variance_cost / entry.net_sales) * 100 : 0
+                const waste_percentage = entry.net_sales ? (entry.waste_amount / entry.net_sales) * 100 : 0
+                return (
+                <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4">{formatDate(entry.business_date)}</td>
+                  <td className="py-3 px-4">{formatCurrency(entry.net_sales)}</td>
+                  <td className="py-3 px-4">
+                    <span className={`flex items-center ${comp_net_sales >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {comp_net_sales >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                      {formatCurrency(Math.abs(comp_net_sales))}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">{entry.labor_hours}h</td>
+                  <td className={`py-3 px-4 ${entry.labor_percentage > 30 ? 'bg-red-50 text-red-700' : ''}`}>{formatPercentage(entry.labor_percentage)}</td>
+                  <td className={`py-3 px-4 ${food_variance_percentage < -2.5 ? 'bg-red-50 text-red-700' : (food_variance_percentage >= -0.5 && food_variance_percentage <= 0.5 ? 'bg-green-50 text-green-700' : '')}`}>{formatPercentage(food_variance_percentage)}</td>
+                  <td className={`py-3 px-4 ${waste_percentage > 0.8 ? 'bg-red-50 text-red-700' : ''}`}>{formatPercentage(waste_percentage)}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(entry)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          applyDateFilter(entry.business_date)
+                          toast({ title: 'Details', description: 'Detailed view coming soon.' })
+                        }}
+                        className="h-8 w-8 p-0"
+                        title="View details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(entry.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+                  )
+                })}
+            </tbody>
+          </table>
+        </div>
+        )}
+      </div>
+
+      {/* Add/Edit Form Modal */}
+      {isFormOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-wendys-charcoal">
+                {editingEntry ? 'Edit Daily Entry' : 'Add Daily Entry'}
+              </h2>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsFormOpen(false)
+                  setEditingEntry(null)
+                  form.reset()
+                }}
+                className="h-8 w-8 p-0"
+              >
+                ×
+              </Button>
+            </div>
+
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Date Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="business_date">Business Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {form.watch('business_date') ? formatDate(form.watch('business_date')) : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComponent
+                        mode="single"
+                        selected={form.watch('business_date') ? new Date(form.watch('business_date')) : undefined}
+                        onSelect={(date) => {
+                          const iso = date ? date.toISOString().slice(0, 10) : ''
+                          form.setValue('business_date', iso)
+                          if (iso) {
+                            const existing = omegaEntries.find(e => e.business_date === iso)
+                            if (existing) {
+                              setEditingEntry(existing)
+                              form.reset({
+                                business_date: existing.business_date,
+                                net_sales: existing.net_sales != null ? Number(existing.net_sales) : 0,
+                                last_year_sales: existing.last_year_sales != null ? Number(existing.last_year_sales) : 0,
+                                labor_hours: existing.labor_hours != null ? Number(existing.labor_hours) : 0,
+                                ideal_labor_hours: existing.ideal_labor_hours != null ? Number(existing.ideal_labor_hours) : 0,
+                                labor_percentage: existing.labor_percentage != null ? Number(existing.labor_percentage) : 0,
+                                food_variance_cost: existing.food_variance_cost != null ? Number(existing.food_variance_cost) : 0,
+                                waste_amount: existing.waste_amount != null ? Number(existing.waste_amount) : 0,
+                                breakfast_sales: existing.breakfast_sales != null ? Number(existing.breakfast_sales) : 0,
+                                night_sales: existing.night_sales != null ? Number(existing.night_sales) : 0,
+                              })
+                              toast({ title: 'Loaded existing entry', description: `Loaded data for ${formatDate(existing.business_date)} to edit.` })
+                            } else {
+                              setEditingEntry(null)
+                              form.reset({
+                                business_date: iso,
+                                net_sales: 0,
+                                last_year_sales: 0,
+                                labor_hours: 0,
+                                ideal_labor_hours: 0,
+                                labor_percentage: 0,
+                                food_variance_cost: 0,
+                                waste_amount: 0,
+                                breakfast_sales: 0,
+                                night_sales: 0,
+                              })
+                            }
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Net Sales */}
+                <div className="space-y-2">
+                  <Label htmlFor="net_sales">Net Sales ($)</Label>
+                  <Input
+                    id="net_sales"
+                    type="number"
+                    step="0.01"
+                    {...form.register('net_sales')}
+                  />
+                </div>
+
+                {/* Last Year Sales */}
+                <div className="space-y-2">
+                  <Label htmlFor="last_year_sales">Last Year Sales ($)</Label>
+                  <Input
+                    id="last_year_sales"
+                    type="number"
+                    step="0.01"
+                    {...form.register('last_year_sales')}
+                  />
+                </div>
+
+                {/* Comp Net Sales (Computed) */}
+                <div className="space-y-2">
+                  <Label htmlFor="comp_net_sales">Comp Net Sales ($)</Label>
+                  <Input
+                    id="comp_net_sales"
+                    value={formatCurrency(compNetSales)}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+
+                {/* Labor Hours */}
+                <div className="space-y-2">
+                  <Label htmlFor="labor_hours">Labor Hours</Label>
+                  <Input
+                    id="labor_hours"
+                    type="number"
+                    step="0.1"
+                    {...form.register('labor_hours')}
+                  />
+                </div>
+
+                {/* Ideal Labor Hours */}
+                <div className="space-y-2">
+                  <Label htmlFor="ideal_labor_hours">Ideal Labor Hours</Label>
+                  <Input
+                    id="ideal_labor_hours"
+                    type="number"
+                    step="0.1"
+                    {...form.register('ideal_labor_hours')}
+                  />
+                </div>
+
+                {/* Labor Hours Diff (Computed) */}
+                <div className="space-y-2">
+                  <Label htmlFor="labor_hours_diff">Labor Hours +/-</Label>
+                  <Input
+                    id="labor_hours_diff"
+                    value={`${laborHoursDiff >= 0 ? '+' : ''}${laborHoursDiff.toFixed(1)}h`}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+
+                {/* Labor Percentage */}
+                <div className="space-y-2">
+                  <Label htmlFor="labor_percentage">Labor Percentage (%)</Label>
+                  <Input
+                    id="labor_percentage"
+                    type="number"
+                    step="0.1"
+                    {...form.register('labor_percentage')}
+                  />
+                </div>
+
+                {/* Food Variance Cost */}
+                <div className="space-y-2">
+                  <Label htmlFor="food_variance_cost">Food Variance Cost ($)</Label>
+                  <Input
+                    id="food_variance_cost"
+                    type="number"
+                    step="0.01"
+                    {...form.register('food_variance_cost')}
+                  />
+                </div>
+
+                {/* Food Variance Percentage (Computed) */}
+                <div className="space-y-2">
+                  <Label htmlFor="food_variance_percentage">Food Variance %</Label>
+                  <Input
+                    id="food_variance_percentage"
+                    value={formatPercentage(foodVariancePercentage)}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+
+                {/* Waste Amount */}
+                <div className="space-y-2">
+                  <Label htmlFor="waste_amount">Waste Amount ($)</Label>
+                  <Input
+                    id="waste_amount"
+                    type="number"
+                    step="0.01"
+                    {...form.register('waste_amount')}
+                  />
+                </div>
+
+                {/* Waste Percentage (Computed) */}
+                <div className="space-y-2">
+                  <Label htmlFor="waste_percentage">Waste %</Label>
+                  <Input
+                    id="waste_percentage"
+                    value={formatPercentage(wastePercentage)}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+
+                {/* Breakfast Sales */}
+                <div className="space-y-2">
+                  <Label htmlFor="breakfast_sales">Breakfast Sales ($)</Label>
+                  <Input
+                    id="breakfast_sales"
+                    type="number"
+                    step="0.01"
+                    {...form.register('breakfast_sales')}
+                  />
+                </div>
+
+                {/* Night Sales */}
+                <div className="space-y-2">
+                  <Label htmlFor="night_sales">Night Sales ($)</Label>
+                  <Input
+                    id="night_sales"
+                    type="number"
+                    step="0.01"
+                    {...form.register('night_sales')}
+                  />
+                </div>
+              </div>
+
+              {!storeId && (
+                <div className="text-sm text-red-600">
+                  Your account isn’t linked to a store yet. Open Setup and link your user to a store, then try again.
+                </div>
+              )}
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsFormOpen(false)
+                    setEditingEntry(null)
+                    form.reset()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="wendys-button" disabled={insertMutation.isPending || updateMutation.isPending || !storeId}>
+                  {editingEntry ? 'Update Entry' : 'Save Entry'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
