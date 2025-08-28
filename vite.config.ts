@@ -4,6 +4,11 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Set correct base path when building for GitHub Pages
+  // Uses repo name from GITHUB_REPOSITORY when GITHUB_PAGES is true
+  base: process.env.GITHUB_PAGES === 'true'
+    ? `/${(process.env.GITHUB_REPOSITORY || '').split('/')[1] || ''}/`
+    : '/',
   plugins: [react()],
   resolve: {
     alias: {
