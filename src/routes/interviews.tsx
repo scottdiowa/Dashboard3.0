@@ -468,8 +468,14 @@ function InterviewsPage() {
               const currentStatus = testData[0].status
               console.log(`🔍 [Debug] Testing on interview ${testId}, current status: ${currentStatus}`)
               
-              // Test different status values
-              const testStatuses = ['SCHEDULED', 'DONE', 'NO_SHOW', 'HIRED', 'REJECTED', 'scheduled', 'done', 'no_show', 'hired', 'rejected']
+              // Test different status values - including variations that might work
+              const testStatuses = [
+                'SCHEDULED', 'DONE', 'NO_SHOW', 'HIRED', 'REJECTED',
+                'scheduled', 'done', 'no_show', 'hired', 'rejected',
+                'Scheduled', 'Done', 'No_Show', 'Hired', 'Rejected',
+                'scheduled', 'done', 'no_show', 'hired', 'rejected',
+                'COMPLETED', 'FINISHED', 'ATTENDED', 'MISSED', 'DECLINED'
+              ]
               
               for (const testStatus of testStatuses) {
                 try {
@@ -502,6 +508,64 @@ function InterviewsPage() {
           className="text-xs ml-2"
         >
           Test All Statuses
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          onClick={async () => {
+            if (!storeId) return
+            try {
+              console.log('🔍 [Debug] Checking what statuses are actually in the database...')
+              
+              // Get all interviews and see what statuses exist
+              const { data: allInterviews, error: fetchError } = await supabase
+                .from('interviews')
+                .select('id, candidate_name, status')
+                .eq('store_id', storeId)
+              
+              if (fetchError) {
+                console.error('❌ [Debug] Failed to fetch interviews:', fetchError)
+                return
+              }
+              
+              if (allInterviews && allInterviews.length > 0) {
+                console.log('🔍 [Debug] All interviews in database:')
+                allInterviews.forEach(interview => {
+                  console.log(`  - ${interview.candidate_name}: ${interview.status} (${typeof interview.status})`)
+                })
+                
+                // Get unique statuses
+                const uniqueStatuses = [...new Set(allInterviews.map(item => item.status))]
+                console.log('🔍 [Debug] Unique statuses found:', uniqueStatuses)
+                
+                // Check if any of these statuses can be updated
+                if (uniqueStatuses.length > 0) {
+                  const testId = allInterviews[0].id
+                  const testStatus = uniqueStatuses[0]
+                  console.log(`🔍 [Debug] Testing if we can update to existing status: "${testStatus}"`)
+                  
+                  const { error: updateError } = await supabase
+                    .from('interviews')
+                    .update({ status: testStatus })
+                    .eq('id', testId)
+                  
+                  if (updateError) {
+                    console.log(`❌ [Debug] Even existing status "${testStatus}" failed:`, updateError.message)
+                  } else {
+                    console.log(`✅ [Debug] Existing status "${testStatus}" works for updates`)
+                  }
+                }
+              } else {
+                console.log('⚠️ [Debug] No interviews found in database')
+              }
+              
+            } catch (e) {
+              console.error('❌ [Debug] Exception in status check:', e)
+            }
+          }}
+          className="text-xs ml-2"
+        >
+          Check DB Statuses
         </Button>
         
         <Button 
