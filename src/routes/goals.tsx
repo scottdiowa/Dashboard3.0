@@ -17,7 +17,6 @@ const goalsSchema = z.object({
   labor_target_pct: z.coerce.number().min(0),
   waste_target_pct: z.coerce.number().min(0),
   food_variance_target_pct: z.coerce.number().min(0),
-  service_seconds_target: z.coerce.number().min(0),
   team_notes: z.string().optional(),
 })
 
@@ -72,7 +71,6 @@ export function GoalsPage() {
       labor_target_pct: 25,
       waste_target_pct: 0.5,
       food_variance_target_pct: 0.5,
-      service_seconds_target: 60,
       team_notes: '',
     },
   })
@@ -121,7 +119,6 @@ export function GoalsPage() {
         labor_target_pct: savedGoals.labor_target_pct,
         waste_target_pct: savedGoals.waste_target_pct,
         food_variance_target_pct: savedGoals.food_variance_target_pct,
-        service_seconds_target: savedGoals.service_seconds_target,
         team_notes: savedGoals.team_notes || '',
       })
     }
@@ -159,8 +156,6 @@ export function GoalsPage() {
       avgLaborPct,
       wastePct,
       foodVarPct,
-      // Service & Times not available from omega_daily; leave 0/N/A
-      serviceSeconds: 0,
     }
   }, [omegaEntries])
 
@@ -176,7 +171,6 @@ export function GoalsPage() {
         labor_target_pct: payload.labor_target_pct,
         waste_target_pct: payload.waste_target_pct,
         food_variance_target_pct: payload.food_variance_target_pct,
-        service_seconds_target: payload.service_seconds_target,
         team_notes: payload.team_notes || null,
       }
       const { error } = await supabase
@@ -199,7 +193,6 @@ export function GoalsPage() {
       labor_target_pct: 25,
       waste_target_pct: 0.5,
       food_variance_target_pct: 0.5,
-      service_seconds_target: 60,
       team_notes: '',
     })
   }
@@ -307,25 +300,7 @@ export function GoalsPage() {
           </div>
         </div>
 
-        {/* Service & Times */}
-        <div className="wendys-card">
-          <h3 className="text-lg font-semibold text-wendys-charcoal mb-3">Service & Times</h3>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-sm text-gray-600">Target Seconds</p>
-                <Input type="number" step="1" {...form.register('service_seconds_target')} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Actual Seconds</p>
-                <p className="text-xl font-semibold">N/A</p>
-              </div>
-            </div>
-            <div>
-              {statusChip(false, 'No Data')}
-            </div>
-          </div>
-        </div>
+        {/* Service & Times - temporarily removed; will live in its own tab */}
 
         {/* Team & Personal */}
         <div className="wendys-card md:col-span-2 xl:col-span-1">
