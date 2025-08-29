@@ -18,7 +18,9 @@ export function formatPercentage(value: number, decimals: number = 1): string {
 }
 
 export function formatDate(date: string | Date): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date
+  const dateObj = typeof date === 'string'
+    ? new Date(Number(date.slice(0,4)), Number(date.slice(5,7)) - 1, Number(date.slice(8,10)))
+    : date
   return format(dateObj, 'MMM dd, yyyy')
 }
 
@@ -27,7 +29,11 @@ export function formatTime(time: string): string {
 }
 
 export function formatDateTime(date: string, time: string): string {
-  return format(parseISO(`${date}T${time}`), 'MMM dd, yyyy h:mm a')
+  const d = new Date(Number(date.slice(0,4)), Number(date.slice(5,7)) - 1, Number(date.slice(8,10)))
+  return format(new Date(
+    d.getFullYear(), d.getMonth(), d.getDate(),
+    Number(time.slice(0,2)), Number(time.slice(3,5))
+  ), 'MMM dd, yyyy h:mm a')
 }
 
 export function getDateRange(range: 'day' | 'week' | 'month', date: Date = new Date()) {

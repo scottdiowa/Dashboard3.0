@@ -19,12 +19,16 @@ export const chartFormatters = {
   hours: (value: number, decimals = 1) => `${(value ?? 0).toFixed(decimals)}h`,
   
   dateShort: (iso: string | Date) => {
-    const dateObj = typeof iso === 'string' ? parseISO(iso) : iso
+    const dateObj = typeof iso === 'string' 
+      ? new Date(Number(String(iso).slice(0,4)), Number(String(iso).slice(5,7)) - 1, Number(String(iso).slice(8,10)))
+      : iso
     return format(dateObj, 'MMM d')
   },
   
   dateFull: (iso: string | Date) => {
-    const dateObj = typeof iso === 'string' ? parseISO(iso) : iso
+    const dateObj = typeof iso === 'string' 
+      ? new Date(Number(String(iso).slice(0,4)), Number(String(iso).slice(5,7)) - 1, Number(String(iso).slice(8,10)))
+      : iso
     return format(dateObj, 'MMM dd, yyyy')
   },
 

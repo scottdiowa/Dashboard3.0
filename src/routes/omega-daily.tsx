@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
+import { format } from 'date-fns'
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown, Calendar, Eye } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -71,7 +72,7 @@ function OmegaDailyPage() {
 
         sampleEntries.push({
           store_id: storeId,
-          business_date: date.toISOString().slice(0, 10),
+          business_date: format(date, 'yyyy-MM-dd'),
           net_sales: Math.floor(Math.random() * 5000) + 8000, // $8K-13K
           last_year_sales: Math.floor(Math.random() * 4000) + 7000, // $7K-11K
           labor_hours: Math.floor(Math.random() * 40) + 60, // 60-100 hours
@@ -119,7 +120,7 @@ function OmegaDailyPage() {
   const form = useForm<OmegaDailyFormData>({
     resolver: zodResolver(omegaDailySchema),
     defaultValues: {
-      business_date: new Date().toISOString().slice(0, 10),
+      business_date: format(new Date(), 'yyyy-MM-dd'),
       net_sales: 0,
       last_year_sales: 0,
       labor_hours: 0,
@@ -349,7 +350,7 @@ function OmegaDailyPage() {
       // Calculate date 30 days ago
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      const startDate = thirtyDaysAgo.toISOString().slice(0, 10)
+      const startDate = format(thirtyDaysAgo, 'yyyy-MM-dd')
 
       const { data, error } = await supabase
         .from('omega_daily')
@@ -396,7 +397,11 @@ function OmegaDailyPage() {
   const applyDateFilter = (isoDate?: string) => {
     if (!isoDate) return
     filters.handleRangeChange('custom')
-    filters.handleDateChange(new Date(isoDate))
+    // Parse yyyy-MM-dd as a local date to avoid UTC drift
+    const y = Number(isoDate.slice(0, 4))
+    const m = Number(isoDate.slice(5, 7))
+    const d = Number(isoDate.slice(8, 10))
+    filters.handleDateChange(new Date(y, (m || 1) - 1, d || 1))
   }
   // Chart data always uses last 30 days, independent of filters
   const chartDataCompSales = useMemo(() => {
@@ -427,7 +432,7 @@ function OmegaDailyPage() {
     
     // Convert all values explicitly, handling strings from database
     const formData = {
-      business_date: entry.business_date || new Date().toISOString().slice(0, 10),
+      business_date: entry.business_date || format(new Date(), 'yyyy-MM-dd'),
       net_sales: entry.net_sales != null ? Number(entry.net_sales) : 0,
       last_year_sales: entry.last_year_sales != null ? Number(entry.last_year_sales) : 0,
       labor_hours: entry.labor_hours != null ? Number(entry.labor_hours) : 0,
@@ -469,7 +474,7 @@ function OmegaDailyPage() {
         <Button onClick={() => {
           setEditingEntry(null)
           form.reset({
-            business_date: new Date().toISOString().slice(0, 10),
+            business_date: format(new Date(), 'yyyy-MM-dd'),
             net_sales: 0,
             last_year_sales: 0,
             labor_hours: 0,
@@ -854,9 +859,16 @@ function OmegaDailyPage() {
                     <PopoverContent className="w-auto p-0">
                       <CalendarComponent
                         mode="single"
-                        selected={form.watch('business_date') ? new Date(form.watch('business_date')) : undefined}
+                        selected={(() => {
+                          const bd = form.watch('business_date')
+                          if (!bd) return undefined
+                          const y = Number(bd.slice(0, 4))
+                          const m = Number(bd.slice(5, 7))
+                          const d = Number(bd.slice(8, 10))
+                          return new Date(y, (m || 1) - 1, d || 1)
+                        })()}
                         onSelect={(date) => {
-                          const iso = date ? date.toISOString().slice(0, 10) : ''
+                          const iso = date ? format(date, 'yyyy-MM-dd') : ''
                           form.setValue('business_date', iso)
                           if (iso) {
                             const existing = omegaEntries.find(e => e.business_date === iso)

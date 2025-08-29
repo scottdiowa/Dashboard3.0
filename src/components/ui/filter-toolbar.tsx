@@ -166,7 +166,11 @@ export function useFilters(storageKey: string, defaultRange = 'last30') {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(`${storageKey}_date`)
-      return stored ? new Date(stored) : undefined
+      if (stored) {
+        const [y, m, d] = stored.split('-').map(Number)
+        return new Date(y, (m || 1) - 1, d || 1)
+      }
+      return undefined
     }
     return undefined
   })
@@ -182,7 +186,8 @@ export function useFilters(storageKey: string, defaultRange = 'last30') {
     setSelectedDate(date)
     if (typeof window !== 'undefined') {
       if (date) {
-        localStorage.setItem(`${storageKey}_date`, date.toISOString())
+        const local = format(date, 'yyyy-MM-dd')
+        localStorage.setItem(`${storageKey}_date`, local)
       } else {
         localStorage.removeItem(`${storageKey}_date`)
       }
