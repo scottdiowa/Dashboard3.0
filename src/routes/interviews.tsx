@@ -50,17 +50,32 @@ function InterviewsPage() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const { data: auth } = await supabase.auth.getUser()
+      console.log('🔐 [Interviews] Checking user authentication...')
+      const { data: auth, error: authError } = await supabase.auth.getUser()
+      console.log('👤 [Interviews] Auth data:', auth, 'Auth error:', authError)
+      
       const userId = auth.user?.id
-      if (!userId) return
+      if (!userId) {
+        console.log('❌ [Interviews] No user ID found - user not authenticated')
+        return
+      }
+
+      console.log('🔍 [Interviews] Looking up store for user:', userId)
       const { data, error } = await supabase
         .from('users')
         .select('store_id')
         .eq('id', userId)
         .maybeSingle()
+
+      console.log('🏪 [Interviews] Store lookup result - data:', data, 'error:', error)
+
       if (!active) return
-      if (error) return
+      if (error) {
+        console.error('❌ [Interviews] Store lookup error:', error)
+        return
+      }
       setStoreId(data?.store_id ?? null)
+      console.log('✅ [Interviews] Store ID set to:', data?.store_id ?? null)
     })()
     return () => { active = false }
   }, [])
@@ -69,13 +84,18 @@ function InterviewsPage() {
   const { data: interviews = [], isLoading } = useQuery<InterviewRow[]>({
     queryKey: ['interviews', storeId],
     queryFn: async () => {
-      if (!storeId) return []
+      if (!storeId) {
+        console.log('⚠️ [Interviews] No store ID, skipping fetch')
+        return []
+      }
+      console.log('📊 [Interviews] Fetching interviews for store:', storeId)
       const { data, error } = await supabase
         .from('interviews')
         .select('*')
         .eq('store_id', storeId)
         .order('interview_date', { ascending: true })
         .order('interview_time', { ascending: true })
+      console.log('📋 [Interviews] Fetch result - data:', data, 'error:', error)
       if (error) throw error
       return data || []
     },

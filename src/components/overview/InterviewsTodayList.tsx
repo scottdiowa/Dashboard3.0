@@ -16,17 +16,32 @@ export function InterviewsTodayList() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const { data: auth } = await supabase.auth.getUser()
+      console.log('🔐 [InterviewsToday] Checking user authentication...')
+      const { data: auth, error: authError } = await supabase.auth.getUser()
+      console.log('👤 [InterviewsToday] Auth data:', auth, 'Auth error:', authError)
+      
       const userId = auth.user?.id
-      if (!userId) return
+      if (!userId) {
+        console.log('❌ [InterviewsToday] No user ID found - user not authenticated')
+        return
+      }
+
+      console.log('🔍 [InterviewsToday] Looking up store for user:', userId)
       const { data, error } = await supabase
         .from('users')
         .select('store_id')
         .eq('id', userId)
         .maybeSingle()
+
+      console.log('🏪 [InterviewsToday] Store lookup result - data:', data, 'error:', error)
+
       if (!active) return
-      if (error) return
+      if (error) {
+        console.error('❌ [InterviewsToday] Store lookup error:', error)
+        return
+      }
       setStoreId(data?.store_id ?? null)
+      console.log('✅ [InterviewsToday] Store ID set to:', data?.store_id ?? null)
     })()
     return () => { active = false }
   }, [])
