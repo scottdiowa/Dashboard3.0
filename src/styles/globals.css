@@ -94,4 +94,33 @@
   .kpi-delta.negative {
     @apply text-red-600;
   }
+  
+  /* Enhanced Sidebar Styles */
+  .sidebar-item {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  .sidebar-item:hover {
+    @apply transform scale-[1.02];
+  }
+  
+  .sidebar-icon {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  .sidebar-icon:hover {
+    @apply transform scale-110;
+  }
+  
+  .sidebar-tooltip {
+    @apply animate-in fade-in-0 zoom-in-95 duration-200;
+  }
+  
+  .sidebar-search {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  .sidebar-search:focus-within {
+    @apply ring-2 ring-wendys-red/20 border-wendys-red;
+  }
 }

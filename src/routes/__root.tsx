@@ -112,14 +112,15 @@ function RootComponent() {
         onNavToggle={() => setNavOpen(!navOpen)}
         navOpen={navOpen}
       />
-                               <div className="flex">
-                    <RightNavDrawer open={navOpen} />
-                    <main className={cn(
-                      "flex-1 p-6 transition-all duration-300"
-                    )}>
-                      <Outlet />
-                    </main>
-                  </div>
+      <div className="flex">
+        <RightNavDrawer open={navOpen} />
+        <main className={cn(
+          "flex-1 p-6 transition-all duration-300 ease-in-out",
+          navOpen ? "ml-0" : "ml-0"
+        )}>
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }
