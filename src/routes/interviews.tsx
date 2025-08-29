@@ -441,7 +441,7 @@ function InterviewsPage() {
                     value={form.watch('status')}
                     onValueChange={(value) => form.setValue('status', value as any)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="status">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

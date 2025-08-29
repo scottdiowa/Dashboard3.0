@@ -259,6 +259,7 @@ function SmgPage() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    id="date"
                     className="w-full justify-start text-left font-normal"
                   >
                     <Calendar className="mr-2 h-4 w-4" />
