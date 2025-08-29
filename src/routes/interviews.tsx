@@ -110,7 +110,7 @@ function InterviewsPage() {
         candidate_name: payload.candidate_name,
         phone: payload.phone || null,
         email: payload.email ? payload.email : null,
-        position: payload.position || null,
+        position: (payload.position ?? ''),
         interview_date: payload.interview_date,
         interview_time: payload.interview_time,
         status: payload.status,
