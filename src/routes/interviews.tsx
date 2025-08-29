@@ -145,7 +145,7 @@ function InterviewsPage() {
             candidate_name: formData.candidate_name,
             phone: formData.phone || null,
             email: formData.email || null,
-            position: formData.position || null,
+            position: formData.position || '',
             interview_date: formData.interview_date,
             interview_time: formData.interview_time,
             status: formData.status,
