@@ -136,41 +136,125 @@ function InterviewsPage() {
       console.log('🔍 [Interviews] Mutation payload:', payload)
       console.log('🔍 [Interviews] Status value:', payload.status, 'Type:', typeof payload.status)
       
-      const base = {
-        candidate_name: payload.candidate_name,
-        phone: payload.phone || null,
-        email: payload.email ? payload.email : null,
-        position: (payload.position ?? ''),
-        interview_date: payload.interview_date,
-        interview_time: payload.interview_time,
-        status: payload.status as 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED',
-        notes: payload.notes || null,
-      }
-      
-      console.log('🔍 [Interviews] Base object being sent to Supabase:', base)
-
       if (payload.id) {
         console.log('🔍 [Interviews] Updating interview with ID:', payload.id)
-        console.log('🔍 [Interviews] Final update payload:', JSON.stringify(base, null, 2))
         
-        const { error } = await supabase
-          .from('interviews')
-          .update(base)
-          .eq('id', payload.id)
-        if (error) {
-          console.error('❌ [Interviews] Supabase update error:', error)
-          console.error('❌ [Interviews] Error details:', {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint
-          })
-          throw error
+        // NEW APPROACH: Update fields individually to isolate the issue
+        const updates = []
+        
+        // Status update
+        if (payload.status) {
+          const { error: statusError } = await supabase
+            .from('interviews')
+            .update({ status: payload.status })
+            .eq('id', payload.id)
+          if (statusError) {
+            console.error('❌ [Interviews] Status update failed:', statusError)
+            updates.push(`Status: ${statusError.message}`)
+          } else {
+            console.log('✅ [Interviews] Status updated successfully')
+          }
         }
+        
+        // Other field updates
+        if (payload.candidate_name) {
+          const { error: nameError } = await supabase
+            .from('interviews')
+            .update({ candidate_name: payload.candidate_name })
+            .eq('id', payload.id)
+          if (nameError) {
+            console.error('❌ [Interviews] Name update failed:', nameError)
+            updates.push(`Name: ${nameError.message}`)
+          }
+        }
+        
+        if (payload.phone !== undefined) {
+          const { error: phoneError } = await supabase
+            .from('interviews')
+            .update({ phone: payload.phone || null })
+            .eq('id', payload.id)
+          if (phoneError) {
+            console.error('❌ [Interviews] Phone update failed:', phoneError)
+            updates.push(`Phone: ${phoneError.message}`)
+          }
+        }
+        
+        if (payload.email !== undefined) {
+          const { error: emailError } = await supabase
+            .from('interviews')
+            .update({ email: payload.email || null })
+            .eq('id', payload.id)
+          if (emailError) {
+            console.error('❌ [Interviews] Email update failed:', emailError)
+            updates.push(`Email: ${emailError.message}`)
+          }
+        }
+        
+        if (payload.position !== undefined) {
+          const { error: positionError } = await supabase
+            .from('interviews')
+            .update({ position: payload.position || '' })
+            .eq('id', payload.id)
+          if (positionError) {
+            console.error('❌ [Interviews] Position update failed:', positionError)
+            updates.push(`Position: ${positionError.message}`)
+          }
+        }
+        
+        if (payload.interview_date) {
+          const { error: dateError } = await supabase
+            .from('interviews')
+            .update({ interview_date: payload.interview_date })
+            .eq('id', payload.id)
+          if (dateError) {
+            console.error('❌ [Interviews] Date update failed:', dateError)
+            updates.push(`Date: ${dateError.message}`)
+          }
+        }
+        
+        if (payload.interview_time) {
+          const { error: timeError } = await supabase
+            .from('interviews')
+            .update({ interview_time: payload.interview_time })
+            .eq('id', payload.id)
+          if (timeError) {
+            console.error('❌ [Interviews] Time update failed:', timeError)
+            updates.push(`Time: ${timeError.message}`)
+          }
+        }
+        
+        if (payload.notes !== undefined) {
+          const { error: notesError } = await supabase
+            .from('interviews')
+            .update({ notes: payload.notes || null })
+            .eq('id', payload.id)
+          if (notesError) {
+            console.error('❌ [Interviews] Notes update failed:', notesError)
+            updates.push(`Notes: ${notesError.message}`)
+          }
+        }
+        
+        // If any updates failed, throw an error with details
+        if (updates.length > 0) {
+          throw new Error(`Some updates failed: ${updates.join(', ')}`)
+        }
+        
         return
       } else {
         console.log('🔍 [Interviews] Inserting new interview')
-        const insertPayload = { ...base, store_id: storeId }
+        
+        const insertPayload = {
+          store_id: storeId,
+          candidate_name: payload.candidate_name,
+          phone: payload.phone || null,
+          email: payload.email || null,
+          position: payload.position || '',
+          interview_date: payload.interview_date,
+          interview_time: payload.interview_time,
+          status: payload.status,
+          notes: payload.notes || null,
+        }
+        
         console.log('🔍 [Interviews] Final insert payload:', JSON.stringify(insertPayload, null, 2))
         
         const { error } = await supabase
@@ -312,6 +396,89 @@ function InterviewsPage() {
           className="text-xs"
         >
           Insert Sample Data (for testing all statuses)
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          onClick={async () => {
+            if (!storeId) return
+            try {
+              console.log('🔍 [Debug] Testing direct Supabase operations...')
+              
+              // Test 1: Simple status update
+              const { data: testData, error: testError } = await supabase
+                .from('interviews')
+                .select('id, status')
+                .eq('store_id', storeId)
+                .limit(1)
+              
+              if (testError) {
+                console.error('❌ [Debug] Failed to fetch test data:', testError)
+                return
+              }
+              
+              if (testData && testData.length > 0) {
+                const testId = testData[0].id
+                const currentStatus = testData[0].status
+                console.log(`🔍 [Debug] Testing update on interview ${testId}, current status: ${currentStatus}`)
+                
+                // Try to update just the status
+                const { error: updateError } = await supabase
+                  .from('interviews')
+                  .update({ status: 'DONE' })
+                  .eq('id', testId)
+                
+                if (updateError) {
+                  console.error('❌ [Debug] Status update failed:', updateError)
+                } else {
+                  console.log('✅ [Debug] Status update succeeded')
+                }
+              } else {
+                console.log('⚠️ [Debug] No interviews found to test with')
+              }
+            } catch (e) {
+              console.error('❌ [Debug] Exception in test:', e)
+            }
+          }}
+          className="text-xs ml-2"
+        >
+          Test Status Update
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          onClick={async () => {
+            if (!storeId) return
+            try {
+              console.log('🔍 [Debug] Testing database connection and schema...')
+              
+              // Test 1: Check if we can read from interviews table
+              const { data: readData, error: readError } = await supabase
+                .from('interviews')
+                .select('*')
+                .limit(1)
+              
+              if (readError) {
+                console.error('❌ [Debug] Read test failed:', readError)
+              } else {
+                console.log('✅ [Debug] Read test succeeded, data:', readData)
+              }
+              
+              // Test 2: Check current user and permissions
+              const { data: { user }, error: userError } = await supabase.auth.getUser()
+              if (userError) {
+                console.error('❌ [Debug] User check failed:', userError)
+              } else {
+                console.log('✅ [Debug] Current user:', user?.id)
+              }
+              
+            } catch (e) {
+              console.error('❌ [Debug] Exception in connection test:', e)
+            }
+          }}
+          className="text-xs ml-2"
+        >
+          Test Connection
         </Button>
       </div>
 
