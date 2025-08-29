@@ -62,7 +62,7 @@ CREATE TABLE omega_daily (
 CREATE UNIQUE INDEX ON omega_daily (store_id, business_date);
 
 -- Create interview status enum
-CREATE TYPE interview_status AS ENUM ('SCHEDULED','DONE','NO_SHOW','HIRED','REJECTED');
+CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED','REJECTED');
 
 -- Create interviews table
 CREATE TABLE interviews (
