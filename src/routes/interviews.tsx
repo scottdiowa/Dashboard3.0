@@ -379,6 +379,11 @@ function InterviewsPage() {
             </div>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {!storeId && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
+                  Your account isn’t linked to a store yet. Open Setup and link your user to a store before adding interviews.
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="candidate_name">Candidate Name *</Label>
@@ -477,7 +482,7 @@ function InterviewsPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="wendys-button">
+                <Button type="submit" className="wendys-button" disabled={upsertMutation.isPending || !storeId}>
                   {editingInterview ? 'Update Interview' : 'Schedule Interview'}
                 </Button>
               </div>
