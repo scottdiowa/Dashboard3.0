@@ -66,8 +66,8 @@ function SmgPage() {
     return () => { active = false }
   }, [])
 
-  // Fetch SMG entries for the table
-  const { data: smgEntries = [], isLoading, error } = useQuery<SmgDailyRow[]>({
+  // Fetch manual SMG entries for the table
+  const { data: smgDailyEntries = [], isLoading, error } = useQuery<SmgDailyRow[]>({
     queryKey: ['smg_daily', storeId],
     queryFn: async () => {
       if (!storeId) return []
@@ -83,6 +83,38 @@ function SmgPage() {
     },
     enabled: !!storeId,
   })
+
+  // Fallback: fetch imported SMG entries if no manual entries exist
+  const { data: smgImportEntries = [] } = useQuery<any[]>({
+    queryKey: ['smg_entries_import', storeId],
+    queryFn: async () => {
+      if (!storeId) return []
+      const { data, error } = await supabase
+        .from('smg_entries')
+        .select('*')
+        .eq('store_id', storeId)
+        .order('entry_date', { ascending: false })
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!storeId,
+  })
+
+  // Choose manual data if present, otherwise map imported data into the manual shape
+  const smgEntries: SmgDailyRow[] = useMemo(() => {
+    if (smgDailyEntries.length > 0) return smgDailyEntries
+    if (!smgImportEntries.length) return []
+    return smgImportEntries.map((r: any) => ({
+      id: r.id,
+      date: r.entry_date,
+      accuracy_decimal: Number(r.accuracy_of_order) || 0,
+      zod_per_10k: Number(r.zone_of_defection) || 0,
+      cc_complaints: Number(r.customer_computers) || 0,
+      osat_decimal: Number(r.osat) || 0,
+      notes: '',
+      created_at: r.created_at,
+    }))
+  }, [smgDailyEntries, smgImportEntries])
 
   // Create mutation for saving SMG entries
   const createMutation = useMutation({
@@ -126,12 +158,17 @@ function SmgPage() {
   }
 
   // Table columns configuration
+  const parseLocalDate = (iso: string) => {
+    const y = Number(iso.slice(0,4)); const m = Number(iso.slice(5,7)); const d = Number(iso.slice(8,10))
+    return new Date(y, (m || 1) - 1, d || 1)
+  }
+
   const columns = [
     {
       key: 'date',
       label: 'Date',
       sortable: true,
-      render: (value: string) => format(new Date(value), 'MMM dd, yyyy')
+      render: (value: string) => format(parseLocalDate(value), 'MMM dd, yyyy')
     },
     {
       key: 'accuracy_decimal',
