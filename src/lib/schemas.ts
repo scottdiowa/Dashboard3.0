@@ -40,7 +40,7 @@ export const interviewSchema = z.object({
   position: z.string().optional(),
   interview_date: z.string().min(1, "Interview date is required"),
   interview_time: z.string().min(1, "Interview time is required"),
-  status: z.enum(['SCHEDULED', 'DONE', 'NO_SHOW', 'HIRED', 'REJECTED']),
+  status: z.enum(['SCHEDULED', 'COMPLETED', 'NO_SHOW', 'HIRED', 'REJECTED']),
   notes: z.string().optional(),
 })
 

@@ -124,7 +124,7 @@ export interface Database {
           position: string | null
           interview_date: string
           interview_time: string
-          status: 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED'
+          status: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'HIRED' | 'REJECTED'
           notes: string | null
           created_at: string
         }
@@ -137,7 +137,7 @@ export interface Database {
           position?: string | null
           interview_date: string
           interview_time: string
-          status?: 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED'
+          status?: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'HIRED' | 'REJECTED'
           notes?: string | null
           created_at?: string
         }
@@ -150,7 +150,7 @@ export interface Database {
           position?: string | null
           interview_date?: string
           interview_time?: string
-          status?: 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED'
+          status?: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'HIRED' | 'REJECTED'
           notes?: string | null
           created_at?: string
         }
