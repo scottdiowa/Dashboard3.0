@@ -32,6 +32,22 @@ function InterviewsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const { toast } = useToast()
 
+  // Normalize status to match database enum exactly
+  const normalizeStatus = (status: string): 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED' => {
+    const upperStatus = status.toUpperCase()
+    switch (upperStatus) {
+      case 'SCHEDULED':
+      case 'DONE':
+      case 'NO_SHOW':
+      case 'HIRED':
+      case 'REJECTED':
+        return upperStatus as any
+      default:
+        console.warn('Invalid status value:', status, 'defaulting to SCHEDULED')
+        return 'SCHEDULED'
+    }
+  }
+
   const form = useForm<InterviewFormData>({
     resolver: zodResolver(interviewSchema),
     defaultValues: {
@@ -137,7 +153,7 @@ function InterviewsPage() {
         position: (payload.position ?? ''),
         interview_date: payload.interview_date,
         interview_time: payload.interview_time,
-        status: payload.status,
+        status: normalizeStatus(payload.status),
         notes: payload.notes || null,
       }
       
@@ -191,6 +207,9 @@ function InterviewsPage() {
   }
 
   const handleEdit = (interview: any) => {
+    console.log('🔍 [Interviews] Editing interview:', interview)
+    console.log('🔍 [Interviews] Interview status from DB:', interview.status, 'Type:', typeof interview.status)
+    
     setEditingInterview(interview)
     form.reset({
       candidate_name: interview.candidate_name,
@@ -199,7 +218,7 @@ function InterviewsPage() {
       position: interview.position || '',
       interview_date: interview.interview_date,
       interview_time: interview.interview_time,
-      status: interview.status,
+      status: normalizeStatus(interview.status),
       notes: interview.notes || '',
     })
     setIsAddDrawerOpen(true)
@@ -452,7 +471,7 @@ function InterviewsPage() {
                   <Label htmlFor="status">Status *</Label>
                   <Select
                     value={form.watch('status')}
-                    onValueChange={(value) => form.setValue('status', value as any)}
+                    onValueChange={(value) => form.setValue('status', normalizeStatus(value))}
                   >
                     <SelectTrigger id="status">
                       <SelectValue />
