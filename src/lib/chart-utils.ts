@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 
 // Shared chart formatters for consistency
 export const chartFormatters = {
