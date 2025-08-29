@@ -113,6 +113,11 @@ function InterviewsPage() {
       }
       setStoreId(data?.store_id ?? null)
       console.log('✅ [Interviews] Store ID set to:', data?.store_id ?? null)
+      
+      // Check what enum values are actually valid in the database
+      if (data?.store_id) {
+        await checkDatabaseEnum()
+      }
     })()
     return () => { active = false }
   }, [])
