@@ -160,17 +160,37 @@ function InterviewsPage() {
       console.log('🔍 [Interviews] Base object being sent to Supabase:', base)
 
       if (payload.id) {
+        console.log('🔍 [Interviews] Updating interview with ID:', payload.id)
         const { error } = await supabase
           .from('interviews')
           .update(base)
           .eq('id', payload.id)
-        if (error) throw error
+        if (error) {
+          console.error('❌ [Interviews] Supabase update error:', error)
+          console.error('❌ [Interviews] Error details:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          })
+          throw error
+        }
         return
       } else {
+        console.log('🔍 [Interviews] Inserting new interview')
         const { error } = await supabase
           .from('interviews')
           .insert([{ ...base, store_id: storeId }])
-        if (error) throw error
+        if (error) {
+          console.error('❌ [Interviews] Supabase insert error:', error)
+          console.error('❌ [Interviews] Error details:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          })
+          throw error
+        }
         return
       }
     },
