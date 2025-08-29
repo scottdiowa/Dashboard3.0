@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plus, Search, Calendar, Phone, Mail, MapPin, FileText, Upload, CheckCircle, Circle, Clock, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,18 +11,20 @@ import { formatDate, formatTime, getStatusColor } from '@/lib/utils'
 import { interviewSchema, type InterviewFormData } from '@/lib/schemas'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { format } from 'date-fns'
+import { supabase, type Tables } from '@/lib/supabase'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/interviews')({
   component: InterviewsPage,
 })
 
-// TODO: Replace with real data from Supabase
-const mockInterviews: any[] = []
-
-// TODO: Replace with real data from Supabase
-const mockHires: any[] = []
+type InterviewRow = Tables<'interviews'>
+type HireRow = Tables<'hires'>
 
 function InterviewsPage() {
+  const queryClient = useQueryClient()
+  const [storeId, setStoreId] = useState<string | null>(null)
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false)
   const [editingInterview, setEditingInterview] = useState<any>(null)
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null)
@@ -37,23 +39,127 @@ function InterviewsPage() {
       phone: '',
       email: '',
       position: '',
-      interview_date: formatDate(new Date()),
+      interview_date: format(new Date(), 'yyyy-MM-dd'),
       interview_time: '10:00',
       status: 'SCHEDULED',
       notes: '',
     },
   })
 
+  // Resolve store_id for current user (align with other routes)
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const { data: auth } = await supabase.auth.getUser()
+      const userId = auth.user?.id
+      if (!userId) return
+      const { data, error } = await supabase
+        .from('users')
+        .select('store_id')
+        .eq('id', userId)
+        .maybeSingle()
+      if (!active) return
+      if (error) return
+      setStoreId(data?.store_id ?? null)
+    })()
+    return () => { active = false }
+  }, [])
+
+  // Fetch interviews for the store
+  const { data: interviews = [], isLoading } = useQuery<InterviewRow[]>({
+    queryKey: ['interviews', storeId],
+    queryFn: async () => {
+      if (!storeId) return []
+      const { data, error } = await supabase
+        .from('interviews')
+        .select('*')
+        .eq('store_id', storeId)
+        .order('interview_date', { ascending: true })
+        .order('interview_time', { ascending: true })
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!storeId,
+  })
+
+  // Fetch hires and map by interview_id for quick lookup
+  const { data: hires = [] } = useQuery<HireRow[]>({
+    queryKey: ['hires', storeId],
+    queryFn: async () => {
+      if (!storeId) return []
+      const { data, error } = await supabase
+        .from('hires')
+        .select('*')
+        .eq('store_id', storeId)
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!storeId,
+  })
+
+  const hiresByInterviewId = useMemo(() => {
+    const map = new Map<string, HireRow>()
+    for (const h of hires) map.set(h.interview_id, h)
+    return map
+  }, [hires])
+
+  const upsertMutation = useMutation({
+    mutationFn: async (payload: { id?: string } & InterviewFormData) => {
+      if (!storeId) throw new Error('No store selected')
+      const base = {
+        candidate_name: payload.candidate_name,
+        phone: payload.phone || null,
+        email: payload.email ? payload.email : null,
+        position: payload.position || null,
+        interview_date: payload.interview_date,
+        interview_time: payload.interview_time,
+        status: payload.status,
+        notes: payload.notes || null,
+      }
+
+      if (payload.id) {
+        const { error } = await supabase
+          .from('interviews')
+          .update(base)
+          .eq('id', payload.id)
+        if (error) throw error
+        return
+      } else {
+        const { error } = await supabase
+          .from('interviews')
+          .insert([{ ...base, store_id: storeId }])
+        if (error) throw error
+        return
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', storeId] })
+      toast({ title: 'Success!', description: editingInterview ? 'Interview updated successfully.' : 'Interview scheduled successfully.' })
+      setIsAddDrawerOpen(false)
+      setEditingInterview(null)
+      form.reset()
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to save interview', variant: 'destructive' })
+    }
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('interviews').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', storeId] })
+      toast({ title: 'Deleted!', description: 'Interview removed successfully.' })
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to delete interview', variant: 'destructive' })
+    }
+  })
+
   const onSubmit = (data: InterviewFormData) => {
-    // TODO: Replace with actual Supabase call
-    console.log('Submitting interview:', data)
-    toast({
-      title: "Success!",
-      description: editingInterview ? "Interview updated successfully." : "Interview scheduled successfully.",
-    })
-    setIsAddDrawerOpen(false)
-    setEditingInterview(null)
-    form.reset()
+    upsertMutation.mutate(editingInterview ? { id: editingInterview.id, ...data } : data)
   }
 
   const handleEdit = (interview: any) => {
@@ -72,34 +178,33 @@ function InterviewsPage() {
   }
 
   const handleDelete = (id: string) => {
-    // TODO: Replace with actual Supabase call
-    console.log('Deleting interview:', id)
-    toast({
-      title: "Deleted!",
-      description: "Interview removed successfully.",
-    })
+    deleteMutation.mutate(id)
   }
 
-  const handleViewCandidate = (interview: any) => {
-    const hire = mockHires.find(h => h.interview_id === interview.id)
+  const handleViewCandidate = (interview: InterviewRow) => {
+    const hire = hiresByInterviewId.get(interview.id)
     setSelectedCandidate({ ...interview, hire })
   }
 
-  const filteredInterviews = mockInterviews.filter(interview => {
-    const matchesSearch = interview.candidate_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         interview.position.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'ALL' || interview.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredInterviews = useMemo(() => {
+    const list = interviews || []
+    const lower = searchTerm.toLowerCase()
+    return list.filter((interview) => {
+      const matchesSearch = interview.candidate_name.toLowerCase().includes(lower) ||
+        (interview.position || '').toLowerCase().includes(lower)
+      const matchesStatus = statusFilter === 'ALL' || interview.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [interviews, searchTerm, statusFilter])
 
-  const groupedInterviews = filteredInterviews.reduce((groups: Record<string, any[]>, interview) => {
-    const date = interview.interview_date
-    if (!groups[date]) {
-      groups[date] = []
-    }
-    groups[date].push(interview)
-    return groups
-  }, {} as Record<string, typeof mockInterviews>)
+  const groupedInterviews = useMemo(() => {
+    return filteredInterviews.reduce((groups: Record<string, InterviewRow[]>, interview) => {
+      const date = interview.interview_date
+      if (!groups[date]) groups[date] = []
+      groups[date].push(interview)
+      return groups
+    }, {} as Record<string, InterviewRow[]>)
+  }, [filteredInterviews])
 
   return (
     <div className="space-y-6">
@@ -146,6 +251,12 @@ function InterviewsPage() {
 
       {/* Interviews List */}
       <div className="space-y-6">
+        {isLoading && (
+          <div className="text-center text-gray-500">Loading interviews...</div>
+        )}
+        {!isLoading && Object.keys(groupedInterviews).length === 0 && (
+          <div className="text-center text-gray-500">No interviews found.</div>
+        )}
         {Object.entries(groupedInterviews).map(([date, interviews]) => (
           <div key={date} className="wendys-card">
             <h3 className="text-lg font-semibold text-wendys-charcoal mb-4 flex items-center">
