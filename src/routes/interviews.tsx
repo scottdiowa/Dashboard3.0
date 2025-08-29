@@ -35,16 +35,37 @@ function InterviewsPage() {
   // Normalize status to match database enum exactly
   const normalizeStatus = (status: string): 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED' => {
     const upperStatus = status.toUpperCase()
+    console.log('🔍 [Interviews] Normalizing status:', { input: status, upper: upperStatus })
+    
     switch (upperStatus) {
       case 'SCHEDULED':
       case 'DONE':
       case 'NO_SHOW':
       case 'HIRED':
       case 'REJECTED':
+        console.log('🔍 [Interviews] Status normalized to:', upperStatus)
         return upperStatus as any
       default:
-        console.warn('Invalid status value:', status, 'defaulting to SCHEDULED')
+        console.warn('❌ [Interviews] Invalid status value:', status, 'defaulting to SCHEDULED')
         return 'SCHEDULED'
+    }
+  }
+
+  // Check what enum values are actually valid in the database
+  const checkDatabaseEnum = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('interviews')
+        .select('status')
+        .limit(1)
+      
+      if (error) {
+        console.error('❌ [Interviews] Error checking database enum:', error)
+      } else {
+        console.log('🔍 [Interviews] Database enum check result:', data)
+      }
+    } catch (e) {
+      console.error('❌ [Interviews] Exception checking database enum:', e)
     }
   }
 
