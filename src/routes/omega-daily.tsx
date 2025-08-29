@@ -196,6 +196,11 @@ function OmegaDailyPage() {
   })
 
   const onSubmit = (data: OmegaDailyFormData) => {
+    console.log('Form submitted with data:', data)
+    console.log('Form errors:', form.formState.errors)
+    console.log('Store ID:', storeId)
+    console.log('Editing entry:', editingEntry)
+    
     if (editingEntry) {
       updateMutation.mutate({ id: editingEntry.id, payload: data })
     } else {
@@ -776,6 +781,18 @@ function OmegaDailyPage() {
             </div>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Form-level errors */}
+              {Object.keys(form.formState.errors).length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-800 font-medium">Please fix the following errors:</p>
+                  <ul className="text-sm text-red-700 mt-1 space-y-1">
+                    {Object.entries(form.formState.errors).map(([field, error]) => (
+                      <li key={field}>• {error?.message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date Field */}
                 <div className="space-y-2">
@@ -835,6 +852,9 @@ function OmegaDailyPage() {
                       />
                     </PopoverContent>
                   </Popover>
+                  {form.formState.errors.business_date && (
+                    <p className="text-sm text-red-600">{form.formState.errors.business_date.message}</p>
+                  )}
                 </div>
 
                 {/* Net Sales */}
@@ -846,6 +866,9 @@ function OmegaDailyPage() {
                     step="0.01"
                     {...form.register('net_sales')}
                   />
+                  {form.formState.errors.net_sales && (
+                    <p className="text-sm text-red-600">{form.formState.errors.net_sales.message}</p>
+                  )}
                 </div>
 
                 {/* Last Year Sales */}

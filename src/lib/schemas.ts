@@ -8,7 +8,6 @@ export const omegaDailySchema = z.object({
   labor_hours: z.coerce.number().min(0, "Labor hours must be positive"),
   ideal_labor_hours: z.coerce.number().min(0, "Ideal labor hours must be positive"),
   labor_percentage: z.coerce.number().min(0, "Labor percentage must be positive"),
-  theoretical_food_cost: z.coerce.number().min(0, "Theoretical food cost must be positive"),
   food_variance_cost: z.coerce.number(),
   waste_amount: z.coerce.number().min(0, "Waste amount must be positive"),
   breakfast_sales: z.coerce.number().min(0, "Breakfast sales must be positive"),
