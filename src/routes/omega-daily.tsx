@@ -134,6 +134,57 @@ function OmegaDailyPage() {
   })
 
   const insertMutation = useMutation({
+    // Optimistic update before the API request
+    onMutate: async (payload: OmegaDailyFormData) => {
+      if (!storeId) {
+        throw new Error('No store is linked to your account. See Setup to link one.')
+      }
+
+      await queryClient.cancelQueries({ queryKey: ['omega_daily'] })
+
+      const optimisticId = `temp-${Date.now()}`
+      const optimisticEntry: OmegaDailyRow = {
+        id: optimisticId,
+        store_id: storeId,
+        business_date: payload.business_date,
+        net_sales: payload.net_sales,
+        last_year_sales: payload.last_year_sales,
+        labor_hours: payload.labor_hours,
+        ideal_labor_hours: payload.ideal_labor_hours,
+        labor_percentage: payload.labor_percentage,
+        food_variance_cost: payload.food_variance_cost,
+        waste_amount: payload.waste_amount,
+        breakfast_sales: payload.breakfast_sales,
+        night_sales: payload.night_sales,
+      }
+
+      // Update all omega_daily caches that might include this entry
+      const touchedCaches: Array<{ queryKey: unknown; previousData: OmegaDailyRow[] | undefined }> = []
+      const queries = queryClient.getQueriesData<OmegaDailyRow[]>({ queryKey: ['omega_daily'] })
+      for (const [key, previousData] of queries) {
+        // Key format: ['omega_daily', storeId, start?, end?]
+        const k = Array.isArray(key) ? key : []
+        const keyIncludesStore = k.includes(storeId)
+        if (!keyIncludesStore) continue
+
+        // If date range is present on the key, ensure the new date is within range
+        let withinRange = true
+        const start = typeof k[2] === 'string' ? String(k[2]) : undefined
+        const end = typeof k[3] === 'string' ? String(k[3]) : undefined
+        if (start && end) {
+          withinRange = payload.business_date >= start && payload.business_date <= end
+        }
+        if (!withinRange) continue
+
+        const next = [optimisticEntry, ...(previousData || [])]
+        next.sort((a, b) => (a.business_date > b.business_date ? -1 : a.business_date < b.business_date ? 1 : 0))
+
+        touchedCaches.push({ queryKey: key, previousData })
+        queryClient.setQueryData(key, next)
+      }
+
+      return { optimisticId, touchedCaches }
+    },
     mutationFn: async (payload: OmegaDailyFormData) => {
       console.log('🔄 Starting insertMutation with payload:', payload)
       console.log('🏪 Store ID:', storeId)
@@ -171,13 +222,33 @@ function OmegaDailyPage() {
       console.log('✅ Insert successful:', data)
       return data
     },
-    onSuccess: (data) => {
+    onError: (error: any, _payload, context) => {
+      // Roll back optimistic updates
+      if (context?.touchedCaches) {
+        for (const { queryKey, previousData } of context.touchedCaches) {
+          queryClient.setQueryData(queryKey, previousData)
+        }
+      }
+      console.error('💥 Insert mutation failed (rolled back):', error)
+      toast({ title: 'Save failed', description: error?.message || 'Unable to save entry.', variant: 'destructive' })
+    },
+    onSuccess: (data, _variables, context) => {
       console.log('🎉 Insert mutation succeeded with data:', data)
       toast({ title: 'Success!', description: 'Daily metrics saved successfully.' })
+      // Reconcile the optimistic row with the real row (replace temp id)
+      const saved = Array.isArray(data) && data[0] ? data[0] as unknown as OmegaDailyRow : undefined
+      if (saved && context?.touchedCaches && context.optimisticId) {
+        for (const { queryKey } of context.touchedCaches) {
+          const current = queryClient.getQueryData<OmegaDailyRow[]>(queryKey) || []
+          const replaced = current.map(row => row.id === context.optimisticId ? saved : row)
+          queryClient.setQueryData(queryKey, replaced)
+        }
+      }
       setIsFormOpen(false)
       setEditingEntry(null)
       form.reset()
-      queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
+      // Optionally refresh to ensure all views are consistent
+      // queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
     },
     onError: (error: any) => {
       console.error('💥 Insert mutation failed:', error)
