@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatPercentage, formatDate } from '@/lib/utils'
 import { chartFormatters, chartColors, chartDefaults, getDateRange } from '@/lib/chart-utils'
 import { ChartCard } from '@/components/ui/chart-card'
+import { MobileResponsiveTable } from '@/components/ui/mobile-responsive-table'
 import { FilterToolbar, useFilters } from '@/components/ui/filter-toolbar'
 import { omegaDailySchema, type OmegaDailyFormData } from '@/lib/schemas'
 import { useForm } from 'react-hook-form'
@@ -536,40 +537,40 @@ function OmegaDailyPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-wendys-charcoal">Omega Daily</h1>
-          <p className="text-gray-600">
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+        <div className="flex-1">
+          <h1 className="text-xl md:text-2xl font-bold text-wendys-charcoal">Omega Daily</h1>
+          <p className="text-sm md:text-base text-gray-600">
             Daily business metrics and performance tracking
           </p>
         </div>
-        <div className="flex gap-2">
-        <Button onClick={() => {
-          setEditingEntry(null)
-          form.reset({
-            business_date: format(new Date(), 'yyyy-MM-dd'),
-            net_sales: 0,
-            last_year_sales: 0,
-            labor_hours: 0,
-            ideal_labor_hours: 0,
-            labor_percentage: 0,
-            food_variance_cost: 0,
-            waste_amount: 0,
-            breakfast_sales: 0,
-            night_sales: 0,
-          })
-          setIsFormOpen(true)
-        }} className="wendys-button">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Daily Entry
-        </Button>
+        <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 md:items-center">
+          <Button onClick={() => {
+            setEditingEntry(null)
+            form.reset({
+              business_date: format(new Date(), 'yyyy-MM-dd'),
+              net_sales: 0,
+              last_year_sales: 0,
+              labor_hours: 0,
+              ideal_labor_hours: 0,
+              labor_percentage: 0,
+              food_variance_cost: 0,
+              waste_amount: 0,
+              breakfast_sales: 0,
+              night_sales: 0,
+            })
+            setIsFormOpen(true)
+          }} className="wendys-button w-full md:w-auto" size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Daily Entry
+          </Button>
           {storeId && (
-            <>
+            <div className="flex space-x-2 md:space-x-0 md:flex-col md:space-y-2">
               <Button
                 onClick={generateSampleData}
                 variant="outline"
                 size="sm"
-                className="border-wendys-red text-wendys-red hover:bg-wendys-red hover:text-white"
+                className="flex-1 md:flex-none border-wendys-red text-wendys-red hover:bg-wendys-red hover:text-white"
               >
                 Sample Data
               </Button>
@@ -577,11 +578,11 @@ function OmegaDailyPage() {
                 onClick={refreshData}
                 variant="outline"
                 size="sm"
-                className="border-gray-400 text-gray-600 hover:bg-gray-100"
+                className="flex-1 md:flex-none border-gray-400 text-gray-600 hover:bg-gray-100"
               >
                 Refresh
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -597,18 +598,18 @@ function OmegaDailyPage() {
           const mtdWastePct = mtdNetSales > 0 ? (totalWaste / mtdNetSales) * 100 : 0
 
           return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div>
-                <p className="text-sm text-gray-600">MTD Net Sales</p>
-                <p className="mt-1 text-3xl font-bold text-wendys-charcoal">{formatCurrency(mtdNetSales)}</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-gray-600">MTD Net Sales</p>
+                <p className="mt-1 text-2xl sm:text-3xl font-bold text-wendys-charcoal">{formatCurrency(mtdNetSales)}</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">MTD Labor %</p>
-                <p className="mt-1 text-3xl font-bold text-wendys-charcoal">{formatPercentage(mtdLaborPct)}</p>
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-gray-600">MTD Labor %</p>
+                <p className="mt-1 text-2xl sm:text-3xl font-bold text-wendys-charcoal">{formatPercentage(mtdLaborPct)}</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">MTD Waste %</p>
-                <p className="mt-1 text-3xl font-bold text-wendys-charcoal">{formatPercentage(mtdWastePct)}</p>
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-gray-600">MTD Waste %</p>
+                <p className="mt-1 text-2xl sm:text-3xl font-bold text-wendys-charcoal">{formatPercentage(mtdWastePct)}</p>
               </div>
             </div>
           )
@@ -744,13 +745,13 @@ function OmegaDailyPage() {
         </ChartCard>
       </div>
 
-      {/* Data Table */}
+      {/* Data Table - Mobile Responsive */}
       <div className="wendys-card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-wendys-charcoal">
             {filters.selectedRange === 'last30' ? 'All Entries' : 'Filtered Entries'}
         </h3>
-          <div className="text-sm text-gray-600 flex items-center">
+          <div className="text-xs md:text-sm text-gray-600 flex items-center">
             {isLoading ? 'Loading...' : `${omegaEntries.length} entries`}
             {filters.selectedRange !== 'last30' && 
               ` for ${filters.getSelectedLabel()}`
@@ -791,7 +792,7 @@ function OmegaDailyPage() {
               )}
             </div>
             {storeId && (
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 justify-center">
                 <Button onClick={() => setIsFormOpen(true)} className="wendys-button">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Entry
@@ -807,86 +808,130 @@ function OmegaDailyPage() {
             )}
           </div>
         ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Net Sales</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Comp Sales</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Labor Hours</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Labor %</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Food Variance</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Waste</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {omegaEntries.map((entry) => {
-                const comp_net_sales = (entry.net_sales ?? 0) - (entry.last_year_sales ?? 0)
-                const food_variance_percentage = entry.net_sales ? (entry.food_variance_cost / entry.net_sales) * 100 : 0
-                const waste_percentage = entry.net_sales ? (entry.waste_amount / entry.net_sales) * 100 : 0
-                return (
-                <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4">{formatDate(entry.business_date)}</td>
-                  <td className="py-3 px-4">{formatCurrency(entry.net_sales)}</td>
-                  <td className="py-3 px-4">
-                    <span className={`flex items-center ${comp_net_sales >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+        <MobileResponsiveTable
+          columns={[
+            { key: 'business_date', label: 'Date', render: (value) => formatDate(value) },
+            { key: 'net_sales', label: 'Net Sales', render: (value) => formatCurrency(value) },
+            { key: 'comp_sales', label: 'Comp Sales', render: (_: any, row: any) => {
+              const comp_net_sales = (row.net_sales ?? 0) - (row.last_year_sales ?? 0)
+              return (
+                <span className={`flex items-center ${comp_net_sales >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {comp_net_sales >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                  {formatCurrency(Math.abs(comp_net_sales))}
+                </span>
+              )
+            }},
+            { key: 'labor_hours', label: 'Labor Hours', render: (value) => `${value}h` },
+            { key: 'labor_percentage', label: 'Labor %', render: (value) => formatPercentage(value) },
+            { key: 'food_variance', label: 'Food Variance', render: (_: any, row: any) => {
+              const food_variance_percentage = row.net_sales ? (row.food_variance_cost / row.net_sales) * 100 : 0
+              return formatPercentage(food_variance_percentage)
+            }},
+            { key: 'waste', label: 'Waste', render: (_: any, row: any) => {
+              const waste_percentage = row.net_sales ? (row.waste_amount / row.net_sales) * 100 : 0
+              return formatPercentage(waste_percentage)
+            }},
+            { key: 'actions', label: 'Actions', render: (_: any, row: any) => (
+              <div className="flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(row)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    applyDateFilter(row.business_date)
+                    toast({ title: 'Details', description: 'Detailed view coming soon.' })
+                  }}
+                  className="h-8 w-8 p-0"
+                  title="View details"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(row.id)}
+                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )},
+          ]}
+          data={omegaEntries}
+          mobileCardRender={(row: any) => {
+            const comp_net_sales = (row.net_sales ?? 0) - (row.last_year_sales ?? 0)
+            const food_variance_percentage = row.net_sales ? (row.food_variance_cost / row.net_sales) * 100 : 0
+            const waste_percentage = row.net_sales ? (row.waste_amount / row.net_sales) * 100 : 0
+            return (
+              <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-gray-900">{formatDate(row.business_date)}</span>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(row)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(row.id)}
+                      className="h-8 w-8 p-0 text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Net Sales:</span>
+                    <div className="font-medium">{formatCurrency(row.net_sales)}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Comp Sales:</span>
+                    <div className={`font-medium flex items-center ${comp_net_sales >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {comp_net_sales >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                       {formatCurrency(Math.abs(comp_net_sales))}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">{entry.labor_hours}h</td>
-                  <td className={`py-3 px-4 ${entry.labor_percentage > 30 ? 'bg-red-50 text-red-700' : ''}`}>{formatPercentage(entry.labor_percentage)}</td>
-                  <td className={`py-3 px-4 ${food_variance_percentage < -2.5 ? 'bg-red-50 text-red-700' : (food_variance_percentage >= -0.5 && food_variance_percentage <= 0.5 ? 'bg-green-50 text-green-700' : '')}`}>{formatPercentage(food_variance_percentage)}</td>
-                  <td className={`py-3 px-4 ${waste_percentage > 0.8 ? 'bg-red-50 text-red-700' : ''}`}>{formatPercentage(waste_percentage)}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(entry)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          applyDateFilter(entry.business_date)
-                          toast({ title: 'Details', description: 'Detailed view coming soon.' })
-                        }}
-                        className="h-8 w-8 p-0"
-                        title="View details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(entry.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </td>
-                </tr>
-                  )
-                })}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Labor:</span>
+                    <div className="font-medium">{row.labor_hours}h ({formatPercentage(row.labor_percentage)})</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Food Variance:</span>
+                    <div className="font-medium">{formatPercentage(food_variance_percentage)}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Waste:</span>
+                    <div className="font-medium">{formatPercentage(waste_percentage)}</div>
+                  </div>
+                </div>
+              </div>
+            )
+          }}
+          emptyMessage="No entries found"
+          loading={isLoading}
+        />
         )}
       </div>
 
       {/* Add/Edit Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-wendys-charcoal">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-semibold text-wendys-charcoal">
                 {editingEntry ? 'Edit Daily Entry' : 'Add Daily Entry'}
               </h2>
               <Button
@@ -917,7 +962,7 @@ function OmegaDailyPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date Field */}
-                <div className="space-y-2">
+                <div className="md:col-span-2 space-y-2">
                   <Label htmlFor="business_date">Business Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -1162,7 +1207,7 @@ function OmegaDailyPage() {
                   Your account isn’t linked to a store yet. Open Setup and link your user to a store, then try again.
                 </div>
               )}
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex flex-col-reverse space-y-2 space-y-reverse md:flex-row md:space-y-0 md:space-x-3 pt-4 md:col-span-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -1171,10 +1216,11 @@ function OmegaDailyPage() {
                     setEditingEntry(null)
                     form.reset()
                   }}
+                  className="w-full md:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="wendys-button" disabled={insertMutation.isPending || updateMutation.isPending || !storeId}>
+                <Button type="submit" className="wendys-button w-full md:w-auto" disabled={insertMutation.isPending || updateMutation.isPending || !storeId}>
                   {editingEntry ? 'Update Entry' : 'Save Entry'}
                 </Button>
               </div>

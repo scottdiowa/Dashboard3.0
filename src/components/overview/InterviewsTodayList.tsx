@@ -61,7 +61,7 @@ export function InterviewsTodayList() {
     },
     enabled: !!storeId,
   })
-
+  
   const formatTime = (time: string) => {
     return format(new Date(`2000-01-01T${time}`), 'h:mm a')
   }
