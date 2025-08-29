@@ -13,6 +13,7 @@ import { Route as SmgRouteImport } from './routes/smg'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as OmegaDailyRouteImport } from './routes/omega-daily'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as InterviewsRouteImport } from './routes/interviews'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as IndexRouteImport } from './routes/index'
@@ -37,6 +38,11 @@ const OmegaDailyRoute = OmegaDailyRouteImport.update({
   path: '/omega-daily',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InterviewsRoute = InterviewsRouteImport.update({
   id: '/interviews',
   path: '/interviews',
@@ -55,6 +61,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/goals': typeof GoalsRoute
   '/interviews': typeof InterviewsRoute
   '/omega-daily': typeof OmegaDailyRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/goals': typeof GoalsRoute
   '/interviews': typeof InterviewsRoute
   '/omega-daily': typeof OmegaDailyRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/goals': typeof GoalsRoute
   '/interviews': typeof InterviewsRoute
   '/omega-daily': typeof OmegaDailyRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/calendar'
     | '/goals'
     | '/interviews'
     | '/omega-daily'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/calendar'
     | '/goals'
     | '/interviews'
     | '/omega-daily'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/calendar'
     | '/goals'
     | '/interviews'
     | '/omega-daily'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalendarRoute: typeof CalendarRoute
   GoalsRoute: typeof GoalsRoute
   InterviewsRoute: typeof InterviewsRoute
   OmegaDailyRoute: typeof OmegaDailyRoute
@@ -123,6 +136,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/smg': {
       id: '/smg'
       path: '/smg'
@@ -177,6 +197,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalendarRoute: CalendarRoute,
   GoalsRoute: GoalsRoute,
   InterviewsRoute: InterviewsRoute,
   OmegaDailyRoute: OmegaDailyRoute,

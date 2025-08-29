@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star } from 'lucide-react'
+import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, MessageSquare } from 'lucide-react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useState, useMemo } from 'react'
@@ -26,6 +26,14 @@ const navigationItems = [
     priority: 'high'
   },
   {
+    name: 'Calendar',
+    href: '/calendar',
+    icon: Calendar,
+    description: 'Events and reminders',
+    category: 'main',
+    priority: 'medium'
+  },
+  {
     name: 'Interviews & Hires',
     href: '/interviews',
     icon: Users,
@@ -36,7 +44,7 @@ const navigationItems = [
   {
     name: 'OSAT',
     href: '/smg',
-    icon: Calendar,
+    icon: MessageSquare,
     description: 'Customer feedback metrics',
     category: 'main',
     priority: 'medium'
