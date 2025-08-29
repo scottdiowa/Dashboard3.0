@@ -326,6 +326,38 @@ function InterviewsPage() {
           Schedule Interview
         </Button>
       </div>
+      
+      {/* Sample Data Button for Testing */}
+      <div className="mb-4">
+        <Button 
+          variant="outline" 
+          onClick={async () => {
+            if (!storeId) return
+            try {
+              const sampleInterviews = [
+                { store_id: storeId, candidate_name: 'Test - DONE', phone: '555-0001', email: 'test1@example.com', position: 'Crew', interview_date: new Date().toISOString().split('T')[0], interview_time: '10:00:00', status: 'DONE', notes: 'Test DONE status' },
+                { store_id: storeId, candidate_name: 'Test - NO_SHOW', phone: '555-0002', email: 'test2@example.com', position: 'Crew', interview_date: new Date().toISOString().split('T')[0], interview_time: '11:00:00', status: 'NO_SHOW', notes: 'Test NO_SHOW status' },
+                { store_id: storeId, candidate_name: 'Test - HIRED', phone: '555-0003', email: 'test3@example.com', position: 'Crew', interview_date: new Date().toISOString().split('T')[0], interview_time: '12:00:00', status: 'HIRED', notes: 'Test HIRED status' },
+                { store_id: storeId, candidate_name: 'Test - REJECTED', phone: '555-0004', email: 'test4@example.com', position: 'Crew', interview_date: new Date().toISOString().split('T')[0], interview_time: '13:00:00', status: 'REJECTED', notes: 'Test REJECTED status' }
+              ]
+              
+              for (const interview of sampleInterviews) {
+                const { error } = await supabase.from('interviews').insert(interview)
+                if (error) console.error('Error inserting:', error)
+                else console.log('✅ Inserted:', interview.status)
+              }
+              
+              // Refresh the page to see new data
+              window.location.reload()
+            } catch (error) {
+              console.error('Error inserting sample data:', error)
+            }
+          }}
+          className="text-xs"
+        >
+          Insert Sample Data (for testing all statuses)
+        </Button>
+      </div>
 
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -536,11 +568,11 @@ function InterviewsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="done">Completed</SelectItem>
-                      <SelectItem value="no_show">No Show</SelectItem>
-                      <SelectItem value="hired">Hired</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                      <SelectItem value="DONE">Completed</SelectItem>
+                      <SelectItem value="NO_SHOW">No Show</SelectItem>
+                      <SelectItem value="HIRED">Hired</SelectItem>
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
