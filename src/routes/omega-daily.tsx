@@ -400,7 +400,6 @@ function OmegaDailyPage() {
 
   // Calculate computed values for form preview
   const watchValues = form.watch()
-  const compNetSales = watchValues.net_sales - watchValues.last_year_sales
   const compNetSalesPercentage = watchValues.last_year_sales > 0
     ? ((watchValues.net_sales - watchValues.last_year_sales) / watchValues.last_year_sales) * 100
     : 0
