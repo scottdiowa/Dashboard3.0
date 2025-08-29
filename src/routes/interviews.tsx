@@ -536,11 +536,11 @@ function InterviewsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                      <SelectItem value="DONE">Completed</SelectItem>
-                      <SelectItem value="NO_SHOW">No Show</SelectItem>
-                      <SelectItem value="HIRED">Hired</SelectItem>
-                      <SelectItem value="REJECTED">Rejected</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="done">Completed</SelectItem>
+                      <SelectItem value="no_show">No Show</SelectItem>
+                      <SelectItem value="hired">Hired</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
