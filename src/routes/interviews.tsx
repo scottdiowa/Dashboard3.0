@@ -54,15 +54,28 @@ function InterviewsPage() {
   // Check what enum values are actually valid in the database
   const checkDatabaseEnum = async () => {
     try {
+      console.log('🔍 [Interviews] Checking database enum values...')
+      
+      // Try to get all unique status values from the database
       const { data, error } = await supabase
         .from('interviews')
         .select('status')
-        .limit(1)
+        .limit(10)
       
       if (error) {
         console.error('❌ [Interviews] Error checking database enum:', error)
       } else {
         console.log('🔍 [Interviews] Database enum check result:', data)
+        
+        // Extract unique status values
+        const uniqueStatuses = [...new Set(data?.map(item => item.status) || [])]
+        console.log('🔍 [Interviews] Unique status values in database:', uniqueStatuses)
+        
+        // Test what happens when we try to insert with different case variations
+        console.log('🔍 [Interviews] Testing status variations:')
+        console.log('  - "DONE" (uppercase):', uniqueStatuses.includes('DONE'))
+        console.log('  - "done" (lowercase):', uniqueStatuses.includes('done'))
+        console.log('  - "Done" (titlecase):', uniqueStatuses.includes('Done'))
       }
     } catch (e) {
       console.error('❌ [Interviews] Exception checking database enum:', e)
