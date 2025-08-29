@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, Clock } from 'lucide-react'
+import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star } from 'lucide-react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useState, useMemo } from 'react'
@@ -75,14 +75,6 @@ export function RightNavDrawer({ open }: RightNavDrawerProps) {
     )
   }, [searchQuery])
 
-  // Get recent items (mock data - you can implement real logic)
-  const recentItems = useMemo(() => {
-    return navigationItems.slice(0, 3).map(item => ({
-      ...item,
-      lastVisited: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
-    }))
-  }, [])
-
   return (
     <>
       {/* Sidebar (left-aligned, scrolls with page) */}
@@ -113,62 +105,6 @@ export function RightNavDrawer({ open }: RightNavDrawerProps) {
             open ? "p-4" : "p-2"
           )}>
             
-            {/* Recent Items Section - Only show when expanded and no search */}
-            {open && !searchQuery.trim() && (
-              <div className="mb-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Recent</span>
-                </div>
-                <div className="space-y-1">
-                  {recentItems.map((item) => {
-                    const isActive = location.pathname === item.href
-                    const Icon = item.icon
-                    
-                    return (
-                      <Link
-                        key={`recent-${item.href}`}
-                        to={item.href}
-                        className={cn(
-                          "flex items-center space-x-3 p-2 rounded-md transition-all duration-200 group",
-                          isActive 
-                            ? "bg-wendys-red text-white ring-1 ring-red-200" 
-                            : "text-gray-700 hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-gray-200"
-                        )}
-                      >
-                        <div className={cn(
-                          "flex-shrink-0 p-1.5 rounded-md transition-colors duration-200",
-                          isActive 
-                            ? "bg-white/20" 
-                            : "bg-gray-100 group-hover:bg-wendys-red/10"
-                        )}>
-                          <Icon className={cn(
-                            "h-4 w-4",
-                            isActive ? "text-white" : "text-gray-600 group-hover:text-wendys-red"
-                          )} />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className={cn(
-                            "font-medium text-sm",
-                            isActive ? "text-white" : "text-gray-800"
-                          )}>
-                            {item.name}
-                          </div>
-                          <div className={cn(
-                            "text-xs mt-0.5",
-                            isActive ? "text-red-100" : "text-gray-500"
-                          )}>
-                            {item.description}
-                          </div>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Main Navigation */}
             <div className="space-y-1">
               {filteredItems.map((item) => {
