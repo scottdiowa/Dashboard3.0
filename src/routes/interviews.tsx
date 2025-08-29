@@ -126,6 +126,10 @@ function InterviewsPage() {
   const upsertMutation = useMutation({
     mutationFn: async (payload: { id?: string } & InterviewFormData) => {
       if (!storeId) throw new Error('No store selected')
+      
+      console.log('🔍 [Interviews] Mutation payload:', payload)
+      console.log('🔍 [Interviews] Status value:', payload.status, 'Type:', typeof payload.status)
+      
       const base = {
         candidate_name: payload.candidate_name,
         phone: payload.phone || null,
@@ -136,6 +140,8 @@ function InterviewsPage() {
         status: payload.status,
         notes: payload.notes || null,
       }
+      
+      console.log('🔍 [Interviews] Base object being sent to Supabase:', base)
 
       if (payload.id) {
         const { error } = await supabase
@@ -179,6 +185,8 @@ function InterviewsPage() {
   })
 
   const onSubmit = (data: InterviewFormData) => {
+    console.log('🔍 [Interviews] Form submitted with data:', data)
+    console.log('🔍 [Interviews] Status from form:', data.status, 'Type:', typeof data.status)
     upsertMutation.mutate(editingInterview ? { id: editingInterview.id, ...data } : data)
   }
 
