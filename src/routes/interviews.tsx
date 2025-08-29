@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
-import { Plus, Search, Calendar, Phone, Mail, MapPin, FileText, Upload, CheckCircle, Circle, Clock, Edit, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Plus, Search, Calendar, Phone, Mail, MapPin, FileText, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,309 +8,191 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { formatDate, formatTime, getStatusColor } from '@/lib/utils'
-import { interviewSchema, type InterviewFormData } from '@/lib/schemas'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { format } from 'date-fns'
-import { supabase, type Tables } from '@/lib/supabase'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 
 export const Route = createFileRoute('/interviews')({
   component: InterviewsPage,
 })
 
-type InterviewRow = Tables<'interviews'>
-type HireRow = Tables<'hires'>
+// Simple interview type
+interface Interview {
+  id: string
+  store_id: string
+  candidate_name: string
+  phone: string | null
+  email: string | null
+  position: string | null
+  interview_date: string
+  interview_time: string
+  status: string
+  notes: string | null
+  created_at: string
+}
+
+// Simple form data type
+interface InterviewFormData {
+  candidate_name: string
+  phone: string
+  email: string
+  position: string
+  interview_date: string
+  interview_time: string
+  status: string
+  notes: string
+}
 
 function InterviewsPage() {
-  const queryClient = useQueryClient()
   const [storeId, setStoreId] = useState<string | null>(null)
+  const [interviews, setInterviews] = useState<Interview[]>([])
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false)
-  const [editingInterview, setEditingInterview] = useState<any>(null)
-  const [selectedCandidate, setSelectedCandidate] = useState<any>(null)
+  const [editingInterview, setEditingInterview] = useState<Interview | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
-
-
-
-
-  const form = useForm<InterviewFormData>({
-    resolver: zodResolver(interviewSchema),
-    defaultValues: {
-      candidate_name: '',
-      phone: '',
-      email: '',
-      position: '',
-      interview_date: format(new Date(), 'yyyy-MM-dd'),
-      interview_time: '10:00',
-      status: 'SCHEDULED',
-      notes: '',
-    },
+  // Form state
+  const [formData, setFormData] = useState<InterviewFormData>({
+    candidate_name: '',
+    phone: '',
+    email: '',
+    position: '',
+    interview_date: '',
+    interview_time: '',
+    status: 'SCHEDULED',
+    notes: ''
   })
 
-  // Resolve store_id for current user (align with other routes)
+  // Get user's store ID
   useEffect(() => {
-    let active = true
-    ;(async () => {
-      console.log('🔐 [Interviews] Checking user authentication...')
-      const { data: auth, error: authError } = await supabase.auth.getUser()
-      console.log('👤 [Interviews] Auth data:', auth, 'Auth error:', authError)
-      
-      const userId = auth.user?.id
-      if (!userId) {
-        console.log('❌ [Interviews] No user ID found - user not authenticated')
-        return
+    const getStoreId = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { data } = await supabase
+          .from('users')
+          .select('store_id')
+          .eq('id', user.id)
+          .single()
+
+        if (data?.store_id) {
+          setStoreId(data.store_id)
+          fetchInterviews(data.store_id)
+        }
+      } catch (error) {
+        console.error('Error getting store ID:', error)
       }
+    }
 
-      console.log('🔍 [Interviews] Looking up store for user:', userId)
-      const { data, error } = await supabase
-        .from('users')
-        .select('store_id')
-        .eq('id', userId)
-        .maybeSingle()
-
-      console.log('🏪 [Interviews] Store lookup result - data:', data, 'error:', error)
-
-      if (!active) return
-      if (error) {
-        console.error('❌ [Interviews] Store lookup error:', error)
-        return
-      }
-      setStoreId(data?.store_id ?? null)
-      console.log('✅ [Interviews] Store ID set to:', data?.store_id ?? null)
-      
-
-    })()
-    return () => { active = false }
+    getStoreId()
   }, [])
 
-  // Fetch interviews for the store
-  const { data: interviews = [], isLoading } = useQuery<InterviewRow[]>({
-    queryKey: ['interviews', storeId],
-    queryFn: async () => {
-      if (!storeId) {
-        console.log('⚠️ [Interviews] No store ID, skipping fetch')
-        return []
-      }
-      console.log('📊 [Interviews] Fetching interviews for store:', storeId)
+  // Fetch interviews
+  const fetchInterviews = async (storeId: string) => {
+    try {
+      setIsLoading(true)
       const { data, error } = await supabase
         .from('interviews')
         .select('*')
         .eq('store_id', storeId)
         .order('interview_date', { ascending: true })
         .order('interview_time', { ascending: true })
-      console.log('📋 [Interviews] Fetch result - data:', data, 'error:', error)
+
       if (error) throw error
-      return data || []
-    },
-    enabled: !!storeId,
-  })
-
-  // Fetch hires and map by interview_id for quick lookup
-  const { data: hires = [] } = useQuery<HireRow[]>({
-    queryKey: ['hires', storeId],
-    queryFn: async () => {
-      if (!storeId) return []
-      const { data, error } = await supabase
-        .from('hires')
-        .select('*')
-        .eq('store_id', storeId)
-      if (error) throw error
-      return data || []
-    },
-    enabled: !!storeId,
-  })
-
-  const hiresByInterviewId = useMemo(() => {
-    const map = new Map<string, HireRow>()
-    for (const h of hires) map.set(h.interview_id, h)
-    return map
-  }, [hires])
-
-  const upsertMutation = useMutation({
-    mutationFn: async (payload: { id?: string } & InterviewFormData) => {
-      if (!storeId) throw new Error('No store selected')
-      
-      console.log('🔍 [Interviews] Mutation payload:', payload)
-      console.log('🔍 [Interviews] Status value:', payload.status, 'Type:', typeof payload.status)
-      
-      if (payload.id) {
-        console.log('🔍 [Interviews] Updating interview with ID:', payload.id)
-        
-        // NEW APPROACH: Update fields individually to isolate the issue
-        const updates = []
-        
-        // Status update
-        if (payload.status) {
-          const { error: statusError } = await supabase
-            .from('interviews')
-            .update({ status: payload.status })
-            .eq('id', payload.id)
-          if (statusError) {
-            console.error('❌ [Interviews] Status update failed:', statusError)
-            updates.push(`Status: ${statusError.message}`)
-          } else {
-            console.log('✅ [Interviews] Status updated successfully')
-          }
-        }
-        
-        // Other field updates
-        if (payload.candidate_name) {
-          const { error: nameError } = await supabase
-            .from('interviews')
-            .update({ candidate_name: payload.candidate_name })
-            .eq('id', payload.id)
-          if (nameError) {
-            console.error('❌ [Interviews] Name update failed:', nameError)
-            updates.push(`Name: ${nameError.message}`)
-          }
-        }
-        
-        if (payload.phone !== undefined) {
-          const { error: phoneError } = await supabase
-            .from('interviews')
-            .update({ phone: payload.phone || null })
-            .eq('id', payload.id)
-          if (phoneError) {
-            console.error('❌ [Interviews] Phone update failed:', phoneError)
-            updates.push(`Phone: ${phoneError.message}`)
-          }
-        }
-        
-        if (payload.email !== undefined) {
-          const { error: emailError } = await supabase
-            .from('interviews')
-            .update({ email: payload.email || null })
-            .eq('id', payload.id)
-          if (emailError) {
-            console.error('❌ [Interviews] Email update failed:', emailError)
-            updates.push(`Email: ${emailError.message}`)
-          }
-        }
-        
-        if (payload.position !== undefined) {
-          const { error: positionError } = await supabase
-            .from('interviews')
-            .update({ position: payload.position || '' })
-            .eq('id', payload.id)
-          if (positionError) {
-            console.error('❌ [Interviews] Position update failed:', positionError)
-            updates.push(`Position: ${positionError.message}`)
-          }
-        }
-        
-        if (payload.interview_date) {
-          const { error: dateError } = await supabase
-            .from('interviews')
-            .update({ interview_date: payload.interview_date })
-            .eq('id', payload.id)
-          if (dateError) {
-            console.error('❌ [Interviews] Date update failed:', dateError)
-            updates.push(`Date: ${dateError.message}`)
-          }
-        }
-        
-        if (payload.interview_time) {
-          const { error: timeError } = await supabase
-            .from('interviews')
-            .update({ interview_time: payload.interview_time })
-            .eq('id', payload.id)
-          if (timeError) {
-            console.error('❌ [Interviews] Time update failed:', timeError)
-            updates.push(`Time: ${timeError.message}`)
-          }
-        }
-        
-        if (payload.notes !== undefined) {
-          const { error: notesError } = await supabase
-            .from('interviews')
-            .update({ notes: payload.notes || null })
-            .eq('id', payload.id)
-          if (notesError) {
-            console.error('❌ [Interviews] Notes update failed:', notesError)
-            updates.push(`Notes: ${notesError.message}`)
-          }
-        }
-        
-        // If any updates failed, throw an error with details
-        if (updates.length > 0) {
-          throw new Error(`Some updates failed: ${updates.join(', ')}`)
-        }
-        
-        return
-      } else {
-        console.log('🔍 [Interviews] Inserting new interview')
-        
-        const insertPayload = {
-          store_id: storeId,
-          candidate_name: payload.candidate_name,
-          phone: payload.phone || null,
-          email: payload.email || null,
-          position: payload.position || '',
-          interview_date: payload.interview_date,
-          interview_time: payload.interview_time,
-          status: payload.status,
-          notes: payload.notes || null,
-        }
-        
-        console.log('🔍 [Interviews] Final insert payload:', JSON.stringify(insertPayload, null, 2))
-        
-        const { error } = await supabase
-          .from('interviews')
-          .insert([insertPayload])
-        if (error) {
-          console.error('❌ [Interviews] Supabase insert error:', error)
-          console.error('❌ [Interviews] Error details:', {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint
-          })
-          throw error
-        }
-        return
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', storeId] })
-      toast({ title: 'Success!', description: editingInterview ? 'Interview updated successfully.' : 'Interview scheduled successfully.' })
-      setIsAddDrawerOpen(false)
-      setEditingInterview(null)
-      form.reset()
-    },
-    onError: (error: any) => {
-      toast({ title: 'Error', description: error.message || 'Failed to save interview', variant: 'destructive' })
+      setInterviews(data || [])
+    } catch (error) {
+      console.error('Error fetching interviews:', error)
+      toast({ title: 'Error', description: 'Failed to fetch interviews', variant: 'destructive' })
+    } finally {
+      setIsLoading(false)
     }
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('interviews').delete().eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', storeId] })
-      toast({ title: 'Deleted!', description: 'Interview removed successfully.' })
-    },
-    onError: (error: any) => {
-      toast({ title: 'Error', description: error.message || 'Failed to delete interview', variant: 'destructive' })
-    }
-  })
-
-  const onSubmit = (data: InterviewFormData) => {
-    console.log('🔍 [Interviews] Form submitted with data:', data)
-    console.log('🔍 [Interviews] Status from form:', data.status, 'Type:', typeof data.status)
-    upsertMutation.mutate(editingInterview ? { id: editingInterview.id, ...data } : data)
   }
 
-  const handleEdit = (interview: any) => {
-    console.log('🔍 [Interviews] Editing interview:', interview)
-    console.log('🔍 [Interviews] Interview status from DB:', interview.status, 'Type:', typeof interview.status)
-    
+  // Handle form input changes
+  const handleInputChange = (field: keyof InterviewFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      candidate_name: '',
+      phone: '',
+      email: '',
+      position: '',
+      interview_date: '',
+      interview_time: '',
+      status: 'SCHEDULED',
+      notes: ''
+    })
+    setEditingInterview(null)
+  }
+
+  // Save interview (create or update)
+  const saveInterview = async () => {
+    if (!storeId) {
+      toast({ title: 'Error', description: 'No store selected', variant: 'destructive' })
+      return
+    }
+
+    try {
+      if (editingInterview) {
+        // Update existing interview
+        const { error } = await supabase
+          .from('interviews')
+          .update({
+            candidate_name: formData.candidate_name,
+            phone: formData.phone || null,
+            email: formData.email || null,
+            position: formData.position || null,
+            interview_date: formData.interview_date,
+            interview_time: formData.interview_time,
+            status: formData.status,
+            notes: formData.notes || null
+          })
+          .eq('id', editingInterview.id)
+
+        if (error) throw error
+        toast({ title: 'Success!', description: 'Interview updated successfully.' })
+      } else {
+        // Create new interview
+        const { error } = await supabase
+          .from('interviews')
+          .insert([{
+            store_id: storeId,
+            candidate_name: formData.candidate_name,
+            phone: formData.phone || null,
+            email: formData.email || null,
+            position: formData.position || null,
+            interview_date: formData.interview_date,
+            interview_time: formData.interview_time,
+            status: formData.status,
+            notes: formData.notes || null
+          }])
+
+        if (error) throw error
+        toast({ title: 'Success!', description: 'Interview scheduled successfully.' })
+      }
+
+      // Refresh data and close form
+      fetchInterviews(storeId)
+      setIsAddDrawerOpen(false)
+      resetForm()
+    } catch (error: any) {
+      console.error('Error saving interview:', error)
+      toast({ 
+        title: 'Error', 
+        description: error.message || 'Failed to save interview', 
+        variant: 'destructive' 
+      })
+    }
+  }
+
+  // Edit interview
+  const handleEdit = (interview: Interview) => {
     setEditingInterview(interview)
-    form.reset({
+    setFormData({
       candidate_name: interview.candidate_name,
       phone: interview.phone || '',
       email: interview.email || '',
@@ -318,39 +200,50 @@ function InterviewsPage() {
       interview_date: interview.interview_date,
       interview_time: interview.interview_time,
       status: interview.status,
-      notes: interview.notes || '',
+      notes: interview.notes || ''
     })
     setIsAddDrawerOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id)
+  // Delete interview
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this interview?')) return
+
+    try {
+      const { error } = await supabase
+        .from('interviews')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      
+      toast({ title: 'Deleted!', description: 'Interview removed successfully.' })
+      fetchInterviews(storeId!)
+    } catch (error: any) {
+      console.error('Error deleting interview:', error)
+      toast({ 
+        title: 'Error', 
+        description: error.message || 'Failed to delete interview', 
+        variant: 'destructive' 
+      })
+    }
   }
 
-  const handleViewCandidate = (interview: InterviewRow) => {
-    const hire = hiresByInterviewId.get(interview.id)
-    setSelectedCandidate({ ...interview, hire })
-  }
+  // Filter interviews
+  const filteredInterviews = interviews.filter(interview => {
+    const matchesSearch = interview.candidate_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (interview.position || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === 'ALL' || interview.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
-  const filteredInterviews = useMemo(() => {
-    const list = interviews || []
-    const lower = searchTerm.toLowerCase()
-    return list.filter((interview) => {
-      const matchesSearch = interview.candidate_name.toLowerCase().includes(lower) ||
-        (interview.position || '').toLowerCase().includes(lower)
-      const matchesStatus = statusFilter === 'ALL' || interview.status === statusFilter
-      return matchesSearch && matchesStatus
-    })
-  }, [interviews, searchTerm, statusFilter])
-
-  const groupedInterviews = useMemo(() => {
-    return filteredInterviews.reduce((groups: Record<string, InterviewRow[]>, interview) => {
-      const date = interview.interview_date
-      if (!groups[date]) groups[date] = []
-      groups[date].push(interview)
-      return groups
-    }, {} as Record<string, InterviewRow[]>)
-  }, [filteredInterviews])
+  // Group interviews by date
+  const groupedInterviews = filteredInterviews.reduce((groups: Record<string, Interview[]>, interview) => {
+    const date = interview.interview_date
+    if (!groups[date]) groups[date] = []
+    groups[date].push(interview)
+    return groups
+  }, {})
 
   return (
     <div className="space-y-6">
@@ -364,268 +257,6 @@ function InterviewsPage() {
         <Button onClick={() => setIsAddDrawerOpen(true)} className="wendys-button">
           <Plus className="h-4 w-4 mr-2" />
           Schedule Interview
-        </Button>
-      </div>
-      
-      {/* Sample Data Button for Testing */}
-      <div className="mb-4">
-        <Button 
-          variant="outline" 
-          onClick={async () => {
-            if (!storeId) return
-            try {
-              const sampleInterviews = [
-                { store_id: storeId, candidate_name: 'Test - DONE', phone: '555-0001', email: 'test1@example.com', position: 'Crew', interview_date: new Date().toISOString().split('T')[0], interview_time: '10:00:00', status: 'DONE', notes: 'Test DONE status' },
-                { store_id: storeId, candidate_name: 'Test - NO_SHOW', phone: '555-0002', email: 'test2@example.com', position: 'Crew', interview_date: new Date().toISOString().split('T')[0], interview_time: '11:00:00', status: 'NO_SHOW', notes: 'Test NO_SHOW status' },
-                { store_id: storeId, candidate_name: 'Test - HIRED', phone: '555-0003', email: 'test3@example.com', position: 'Crew', interview_date: new Date().toISOString().split('T')[0], interview_time: '12:00:00', status: 'HIRED', notes: 'Test HIRED status' },
-                { store_id: storeId, candidate_name: 'Test - REJECTED', phone: '555-0004', email: 'test4@example.com', position: 'Crew', interview_date: new Date().toISOString().split('T')[0], interview_time: '13:00:00', status: 'REJECTED', notes: 'Test REJECTED status' }
-              ]
-              
-              for (const interview of sampleInterviews) {
-                const { error } = await supabase.from('interviews').insert(interview)
-                if (error) console.error('Error inserting:', error)
-                else console.log('✅ Inserted:', interview.status)
-              }
-              
-              // Refresh the page to see new data
-              window.location.reload()
-            } catch (error) {
-              console.error('Error inserting sample data:', error)
-            }
-          }}
-          className="text-xs"
-        >
-          Insert Sample Data (for testing all statuses)
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          onClick={async () => {
-            if (!storeId) return
-            try {
-              console.log('🔍 [Debug] Testing direct Supabase operations...')
-              
-              // Test 1: Simple status update
-              const { data: testData, error: testError } = await supabase
-                .from('interviews')
-                .select('id, status')
-                .eq('store_id', storeId)
-                .limit(1)
-              
-              if (testError) {
-                console.error('❌ [Debug] Failed to fetch test data:', testError)
-                return
-              }
-              
-              if (testData && testData.length > 0) {
-                const testId = testData[0].id
-                const currentStatus = testData[0].status
-                console.log(`🔍 [Debug] Testing update on interview ${testId}, current status: ${currentStatus}`)
-                
-                // Try to update just the status
-                const { error: updateError } = await supabase
-                  .from('interviews')
-                  .update({ status: 'DONE' })
-                  .eq('id', testId)
-                
-                if (updateError) {
-                  console.error('❌ [Debug] Status update failed:', updateError)
-                } else {
-                  console.log('✅ [Debug] Status update succeeded')
-                }
-              } else {
-                console.log('⚠️ [Debug] No interviews found to test with')
-              }
-            } catch (e) {
-              console.error('❌ [Debug] Exception in test:', e)
-            }
-          }}
-          className="text-xs ml-2"
-        >
-          Test Status Update
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          onClick={async () => {
-            if (!storeId) return
-            try {
-              console.log('🔍 [Debug] Testing different status values...')
-              
-              // Get an existing interview to test with
-              const { data: testData, error: testError } = await supabase
-                .from('interviews')
-                .select('id, status')
-                .eq('store_id', storeId)
-                .limit(1)
-              
-              if (testError || !testData || testData.length === 0) {
-                console.error('❌ [Debug] No test interview found:', testError)
-                return
-              }
-              
-              const testId = testData[0].id
-              const currentStatus = testData[0].status
-              console.log(`🔍 [Debug] Testing on interview ${testId}, current status: ${currentStatus}`)
-              
-              // Test different status values - including variations that might work
-              const testStatuses = [
-                'SCHEDULED', 'DONE', 'NO_SHOW', 'HIRED', 'REJECTED',
-                'scheduled', 'done', 'no_show', 'hired', 'rejected',
-                'Scheduled', 'Done', 'No_Show', 'Hired', 'Rejected',
-                'scheduled', 'done', 'no_show', 'hired', 'rejected',
-                'COMPLETED', 'FINISHED', 'ATTENDED', 'MISSED', 'DECLINED'
-              ]
-              
-              for (const testStatus of testStatuses) {
-                try {
-                  console.log(`🔍 [Debug] Testing status: "${testStatus}"`)
-                  const { error: updateError } = await supabase
-                    .from('interviews')
-                    .update({ status: testStatus })
-                    .eq('id', testId)
-                  
-                  if (updateError) {
-                    console.log(`❌ [Debug] "${testStatus}" failed:`, updateError.message)
-                  } else {
-                    console.log(`✅ [Debug] "${testStatus}" succeeded!`)
-                    // Reset back to original status
-                    await supabase
-                      .from('interviews')
-                      .update({ status: currentStatus })
-                      .eq('id', testId)
-                    break
-                  }
-                } catch (e) {
-                  console.log(`❌ [Debug] "${testStatus}" exception:`, e)
-                }
-              }
-              
-            } catch (e) {
-              console.error('❌ [Debug] Exception in status test:', e)
-            }
-          }}
-          className="text-xs ml-2"
-        >
-          Test All Statuses
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          onClick={async () => {
-            if (!storeId) return
-            try {
-              console.log('🔍 [Debug] Checking what statuses are actually in the database...')
-              
-              // Get all interviews and see what statuses exist
-              const { data: allInterviews, error: fetchError } = await supabase
-                .from('interviews')
-                .select('id, candidate_name, status')
-                .eq('store_id', storeId)
-              
-              if (fetchError) {
-                console.error('❌ [Debug] Failed to fetch interviews:', fetchError)
-                return
-              }
-              
-              if (allInterviews && allInterviews.length > 0) {
-                console.log('🔍 [Debug] All interviews in database:')
-                allInterviews.forEach(interview => {
-                  console.log(`  - ${interview.candidate_name}: ${interview.status} (${typeof interview.status})`)
-                })
-                
-                // Get unique statuses
-                const uniqueStatuses = [...new Set(allInterviews.map(item => item.status))]
-                console.log('🔍 [Debug] Unique statuses found:', uniqueStatuses)
-                
-                // Check if any of these statuses can be updated
-                if (uniqueStatuses.length > 0) {
-                  const testId = allInterviews[0].id
-                  const testStatus = uniqueStatuses[0]
-                  console.log(`🔍 [Debug] Testing if we can update to existing status: "${testStatus}"`)
-                  
-                  const { error: updateError } = await supabase
-                    .from('interviews')
-                    .update({ status: testStatus })
-                    .eq('id', testId)
-                  
-                  if (updateError) {
-                    console.log(`❌ [Debug] Even existing status "${testStatus}" failed:`, updateError.message)
-                  } else {
-                    console.log(`✅ [Debug] Existing status "${testStatus}" works for updates`)
-                  }
-                }
-              } else {
-                console.log('⚠️ [Debug] No interviews found in database')
-              }
-              
-            } catch (e) {
-              console.error('❌ [Debug] Exception in status check:', e)
-            }
-          }}
-          className="text-xs ml-2"
-        >
-          Check DB Statuses
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          onClick={async () => {
-            if (!storeId) return
-            try {
-              console.log('🔍 [Debug] Testing database connection and schema...')
-              
-              // Test 1: Check if we can read from interviews table
-              const { data: readData, error: readError } = await supabase
-                .from('interviews')
-                .select('*')
-                .limit(1)
-              
-              if (readError) {
-                console.error('❌ [Debug] Read test failed:', readError)
-              } else {
-                console.log('✅ [Debug] Read test succeeded, data:', readData)
-              }
-              
-              // Test 2: Check current user and permissions
-              const { data: { user }, error: userError } = await supabase.auth.getUser()
-              if (userError) {
-                console.error('❌ [Debug] User check failed:', userError)
-              } else {
-                console.log('✅ [Debug] Current user:', user?.id)
-              }
-              
-              // Test 3: Check what enum values are actually in the database
-              console.log('🔍 [Debug] Checking actual database enum values...')
-              const { data: enumData, error: enumError } = await supabase
-                .rpc('get_enum_values', { enum_name: 'interview_status' })
-              
-              if (enumError) {
-                console.log('⚠️ [Debug] Enum check failed (trying alternative):', enumError)
-                
-                // Try to get enum values by looking at existing data
-                const { data: existingData, error: existingError } = await supabase
-                  .from('interviews')
-                  .select('status')
-                  .limit(100)
-                
-                if (existingError) {
-                  console.error('❌ [Debug] Failed to get existing statuses:', existingError)
-                } else {
-                  const uniqueStatuses = [...new Set(existingData.map(item => item.status))]
-                  console.log('🔍 [Debug] Found statuses in database:', uniqueStatuses)
-                }
-              } else {
-                console.log('✅ [Debug] Database enum values:', enumData)
-              }
-              
-            } catch (e) {
-              console.error('❌ [Debug] Exception in connection test:', e)
-            }
-          }}
-          className="text-xs ml-2"
-        >
-          Test Connection
         </Button>
       </div>
 
@@ -649,7 +280,7 @@ function InterviewsPage() {
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
             <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-            <SelectItem value="DONE">Completed</SelectItem>
+            <SelectItem value="COMPLETED">Completed</SelectItem>
             <SelectItem value="NO_SHOW">No Show</SelectItem>
             <SelectItem value="HIRED">Hired</SelectItem>
             <SelectItem value="REJECTED">Rejected</SelectItem>
@@ -688,10 +319,10 @@ function InterviewsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                         <div className="flex items-center space-x-2">
                           <MapPin className="h-4 w-4" />
-                          <span>{interview.position}</span>
+                          <span>{interview.position || 'No position specified'}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Clock className="h-4 w-4" />
+                          <Calendar className="h-4 w-4" />
                           <span>{formatTime(interview.interview_time)}</span>
                         </div>
                         {interview.phone && (
@@ -708,31 +339,25 @@ function InterviewsPage() {
                         )}
                       </div>
                       {interview.notes && (
-                        <p className="text-sm text-gray-600 mt-2">{interview.notes}</p>
+                        <div className="mt-2 text-sm text-gray-600">
+                          <FileText className="h-4 w-4 inline mr-1" />
+                          {interview.notes}
+                        </div>
                       )}
                     </div>
                     <div className="flex space-x-2 ml-4">
                       <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewCandidate(interview)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => handleEdit(interview)}
-                        className="h-8 w-8 p-0"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => handleDelete(interview.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -751,14 +376,13 @@ function InterviewsPage() {
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-wendys-charcoal">
-                {editingInterview ? 'Edit Interview' : 'Schedule Interview'}
+                {editingInterview ? 'Edit Interview' : 'Schedule New Interview'}
               </h2>
               <Button
                 variant="ghost"
                 onClick={() => {
                   setIsAddDrawerOpen(false)
-                  setEditingInterview(null)
-                  form.reset()
+                  resetForm()
                 }}
                 className="h-8 w-8 p-0"
               >
@@ -766,19 +390,15 @@ function InterviewsPage() {
               </Button>
             </div>
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {!storeId && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
-                  Your account isn’t linked to a store yet. Open Setup and link your user to a store before adding interviews.
-                </div>
-              )}
+            <form onSubmit={(e) => { e.preventDefault(); saveInterview(); }} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="candidate_name">Candidate Name *</Label>
                   <Input
                     id="candidate_name"
-                    {...form.register('candidate_name')}
-                    placeholder="Enter full name"
+                    value={formData.candidate_name}
+                    onChange={(e) => handleInputChange('candidate_name', e.target.value)}
+                    required
                   />
                 </div>
 
@@ -786,8 +406,9 @@ function InterviewsPage() {
                   <Label htmlFor="position">Position</Label>
                   <Input
                     id="position"
-                    {...form.register('position')}
-                    placeholder="e.g., Team Member, Shift Leader"
+                    value={formData.position}
+                    onChange={(e) => handleInputChange('position', e.target.value)}
+                    placeholder="e.g., Crew Member, Manager"
                   />
                 </div>
 
@@ -795,7 +416,9 @@ function InterviewsPage() {
                   <Label htmlFor="phone">Phone</Label>
                   <Input
                     id="phone"
-                    {...form.register('phone')}
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
                     placeholder="(555) 123-4567"
                   />
                 </div>
@@ -805,7 +428,8 @@ function InterviewsPage() {
                   <Input
                     id="email"
                     type="email"
-                    {...form.register('email')}
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
                     placeholder="candidate@email.com"
                   />
                 </div>
@@ -815,7 +439,9 @@ function InterviewsPage() {
                   <Input
                     id="interview_date"
                     type="date"
-                    {...form.register('interview_date')}
+                    value={formData.interview_date}
+                    onChange={(e) => handleInputChange('interview_date', e.target.value)}
+                    required
                   />
                 </div>
 
@@ -824,35 +450,38 @@ function InterviewsPage() {
                   <Input
                     id="interview_time"
                     type="time"
-                    {...form.register('interview_time')}
+                    value={formData.interview_time}
+                    onChange={(e) => handleInputChange('interview_time', e.target.value)}
+                    required
                   />
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status *</Label>
-                  <Select
-                    value={form.watch('status')}
-                    onValueChange={(value) => form.setValue('status', value as 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED')}
-                  >
-                    <SelectTrigger id="status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                      <SelectItem value="DONE">Completed</SelectItem>
-                      <SelectItem value="NO_SHOW">No Show</SelectItem>
-                      <SelectItem value="HIRED">Hired</SelectItem>
-                      <SelectItem value="REJECTED">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status *</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => handleInputChange('status', value)}
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                    <SelectItem value="NO_SHOW">No Show</SelectItem>
+                    <SelectItem value="HIRED">Hired</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea
                   id="notes"
-                  {...form.register('notes')}
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
                   placeholder="Additional notes about the candidate..."
                   rows={3}
                 />
@@ -864,140 +493,16 @@ function InterviewsPage() {
                   variant="outline"
                   onClick={() => {
                     setIsAddDrawerOpen(false)
-                    setEditingInterview(null)
-                    form.reset()
+                    resetForm()
                   }}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="wendys-button" disabled={upsertMutation.isPending || !storeId}>
+                <Button type="submit" className="wendys-button">
                   {editingInterview ? 'Update Interview' : 'Schedule Interview'}
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Candidate Detail Modal */}
-      {selectedCandidate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-wendys-charcoal">
-                Candidate: {selectedCandidate.candidate_name}
-              </h2>
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedCandidate(null)}
-                className="h-8 w-8 p-0"
-              >
-                ×
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Interview Details */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-wendys-charcoal">Interview Details</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Position:</span>
-                    <span className="font-medium">{selectedCandidate.position}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Date:</span>
-                    <span className="font-medium">{formatDate(selectedCandidate.interview_date)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Time:</span>
-                    <span className="font-medium">{formatTime(selectedCandidate.interview_time)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Status:</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedCandidate.status)}`}>
-                      {selectedCandidate.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                  {selectedCandidate.phone && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Phone:</span>
-                      <span className="font-medium">{selectedCandidate.phone}</span>
-                    </div>
-                  )}
-                  {selectedCandidate.email && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Email:</span>
-                      <span className="font-medium">{selectedCandidate.email}</span>
-                    </div>
-                  )}
-                  {selectedCandidate.notes && (
-                    <div className="space-y-2">
-                      <span className="text-gray-600">Notes:</span>
-                      <p className="text-sm bg-gray-50 p-3 rounded">{selectedCandidate.notes}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Hiring Process */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-wendys-charcoal">Hiring Process</h3>
-                {selectedCandidate.hire ? (
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm">Documents Received</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm">Onboarding Sent</span>
-                        <span className="text-xs text-gray-500">({formatDate(selectedCandidate.hire.onboarding_sent_date)})</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm">Onboarding Completed</span>
-                        <span className="text-xs text-gray-500">({formatDate(selectedCandidate.hire.onboarding_completed_date)})</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm">Manager Reviewed</span>
-                        <span className="text-xs text-gray-500">({formatDate(selectedCandidate.hire.manager_reviewed_date)})</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm">Entered in System</span>
-                        <span className="text-xs text-gray-500">({formatDate(selectedCandidate.hire.entered_in_system_date)})</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Circle className="h-5 w-5 text-gray-400" />
-                        <span className="text-sm">Fingerprint Scheduled</span>
-                        <span className="text-xs text-gray-500">({formatDate(selectedCandidate.hire.fingerprint_scheduled_date)})</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Circle className="h-5 w-5 text-gray-400" />
-                        <span className="text-sm">First Day</span>
-                        <span className="text-xs text-gray-500">({formatDate(selectedCandidate.hire.first_day)})</span>
-                      </div>
-                    </div>
-                    <div className="pt-4">
-                      <Button className="wendys-button w-full">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Documents
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">No hiring process started yet.</p>
-                    <Button className="wendys-button">
-                      Start Hiring Process
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}
