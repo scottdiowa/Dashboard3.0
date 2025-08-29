@@ -401,6 +401,9 @@ function OmegaDailyPage() {
   // Calculate computed values for form preview
   const watchValues = form.watch()
   const compNetSales = watchValues.net_sales - watchValues.last_year_sales
+  const compNetSalesPercentage = watchValues.last_year_sales > 0
+    ? ((watchValues.net_sales - watchValues.last_year_sales) / watchValues.last_year_sales) * 100
+    : 0
   const laborHoursDiff = watchValues.labor_hours - watchValues.ideal_labor_hours
   const foodVariancePercentage = watchValues.net_sales > 0 ? (watchValues.food_variance_cost / watchValues.net_sales) * 100 : 0
   const wastePercentage = watchValues.net_sales > 0 ? (watchValues.waste_amount / watchValues.net_sales) * 100 : 0
@@ -857,12 +860,12 @@ function OmegaDailyPage() {
                   />
                 </div>
 
-                {/* Comp Net Sales (Computed) */}
+                {/* Comp Net Sales Percentage (Computed) */}
                 <div className="space-y-2">
-                  <Label htmlFor="comp_net_sales">Comp Net Sales ($)</Label>
+                  <Label htmlFor="comp_net_sales">Comp Net Sales (%)</Label>
                   <Input
                     id="comp_net_sales"
-                    value={formatCurrency(compNetSales)}
+                    value={formatPercentage(compNetSalesPercentage)}
                     disabled
                     className="bg-gray-100"
                   />
