@@ -280,7 +280,7 @@ function InterviewsPage() {
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
             <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
+            <SelectItem value="DONE">Completed</SelectItem>
             <SelectItem value="NO_SHOW">No Show</SelectItem>
             <SelectItem value="HIRED">Hired</SelectItem>
             <SelectItem value="REJECTED">Rejected</SelectItem>
