@@ -1,37 +1,56 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Plus, Trash2, CheckCircle, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
+import { FilterToolbar, useFilters } from '@/components/ui/filter-toolbar'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
+import { format } from 'date-fns'
 
 const goalsSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  target_value: z.coerce.number().min(0, 'Target value must be positive'),
-  unit: z.string().min(1, 'Unit is required'),
-  metric_source: z.string().optional(),
-  metric_field: z.string().optional(),
+  sales_target: z.coerce.number().min(0),
+  labor_target_pct: z.coerce.number().min(0),
+  waste_target_pct: z.coerce.number().min(0),
+  food_variance_target_pct: z.coerce.number().min(0),
+  service_seconds_target: z.coerce.number().min(0),
+  team_notes: z.string().optional(),
 })
 
 type GoalsFormData = z.infer<typeof goalsSchema>
 
-interface Goal {
+type GoalsRow = {
   id: string
-  title: string
-  target_value: number
-  unit: string
-  status: 'OPEN' | 'DONE'
-  metric_source?: string
-  metric_field?: string
   store_id: string
+  scope: 'week' | 'month' | 'custom'
+  period_start: string
+  period_end: string
+  sales_target: number
+  labor_target_pct: number
+  waste_target_pct: number
+  food_variance_target_pct: number
+  service_seconds_target: number
+  team_notes: string | null
   created_at: string
+}
+
+type OmegaDailyRow = {
+  id: string
+  store_id: string
+  business_date: string
+  net_sales: number
+  last_year_sales: number
+  labor_hours: number
+  ideal_labor_hours: number
+  labor_percentage: number
+  food_variance_cost: number
+  waste_amount: number
+  breakfast_sales: number
+  night_sales: number
 }
 
 export function GoalsPage() {
@@ -39,14 +58,22 @@ export function GoalsPage() {
   const queryClient = useQueryClient()
   const [storeId, setStoreId] = useState<string | null>(null)
 
+  // Filters (reuse global FilterToolbar)
+  const filters = useFilters('goals', 'wtd')
+  const dateRange = filters.getDateRangeFilter()
+  const period_start = dateRange?.start || format(new Date(), 'yyyy-MM-dd')
+  const period_end = dateRange?.end || format(new Date(), 'yyyy-MM-dd')
+  const scope: GoalsRow['scope'] = filters.selectedRange === 'mtd' ? 'month' : filters.selectedRange === 'wtd' ? 'week' : 'custom'
+
   const form = useForm<GoalsFormData>({
     resolver: zodResolver(goalsSchema),
     defaultValues: {
-      title: '',
-      target_value: 0,
-      unit: '',
-      metric_source: '',
-      metric_field: '',
+      sales_target: 0,
+      labor_target_pct: 25,
+      waste_target_pct: 0.5,
+      food_variance_target_pct: 0.5,
+      service_seconds_target: 60,
+      team_notes: '',
     },
   })
 
@@ -69,214 +96,247 @@ export function GoalsPage() {
     return () => { active = false }
   }, [])
 
-  // Fetch goals
-  const { data: goals = [] } = useQuery<Goal[]>({
-    queryKey: ['goals', storeId],
+  // Load existing goals for the selected period
+  const { data: savedGoals } = useQuery<GoalsRow | null>({
+    queryKey: ['goals_settings', storeId, period_start, period_end],
     queryFn: async () => {
-      if (!storeId) return []
+      if (!storeId) return null
       const { data, error } = await supabase
         .from('goals')
         .select('*')
         .eq('store_id', storeId)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data as Goal[]
+        .eq('period_start', period_start)
+        .eq('period_end', period_end)
+        .maybeSingle()
+      if (error && error.code !== 'PGRST116') throw error
+      return (data as GoalsRow) || null
     },
     enabled: !!storeId,
   })
 
-  // Insert mutation
-  const insertMutation = useMutation({
-    mutationFn: async (payload: GoalsFormData) => {
-      if (!storeId) {
-        throw new Error('No store is linked to your account. See Setup to link one.')
-      }
-      const { error } = await supabase.from('goals').insert({
-        store_id: storeId,
-        title: payload.title,
-        target_value: payload.target_value,
-        unit: payload.unit,
-        metric_source: payload.metric_source,
-        metric_field: payload.metric_field,
-        status: 'OPEN',
+  useEffect(() => {
+    if (savedGoals) {
+      form.reset({
+        sales_target: savedGoals.sales_target,
+        labor_target_pct: savedGoals.labor_target_pct,
+        waste_target_pct: savedGoals.waste_target_pct,
+        food_variance_target_pct: savedGoals.food_variance_target_pct,
+        service_seconds_target: savedGoals.service_seconds_target,
+        team_notes: savedGoals.team_notes || '',
       })
+    }
+  }, [savedGoals])
+
+  // Actuals from Omega Daily in the selected range
+  const { data: omegaEntries = [] } = useQuery<OmegaDailyRow[]>({
+    queryKey: ['omega_daily_for_goals', storeId, period_start, period_end],
+    queryFn: async () => {
+      if (!storeId) return []
+      const { data, error } = await supabase
+        .from('omega_daily')
+        .select('*')
+        .eq('store_id', storeId)
+        .gte('business_date', period_start)
+        .lte('business_date', period_end)
+        .order('business_date', { ascending: true })
+      if (error) throw error
+      return data as OmegaDailyRow[]
+    },
+    enabled: !!storeId,
+  })
+
+  const actuals = useMemo(() => {
+    const totalSales = omegaEntries.reduce((s, r) => s + (Number(r.net_sales) || 0), 0)
+    const avgLaborPct = omegaEntries.length > 0
+      ? omegaEntries.reduce((s, r) => s + (Number(r.labor_percentage) || 0), 0) / omegaEntries.length
+      : 0
+    const totalWaste = omegaEntries.reduce((s, r) => s + (Number(r.waste_amount) || 0), 0)
+    const totalVariance = omegaEntries.reduce((s, r) => s + (Number(r.food_variance_cost) || 0), 0)
+    const wastePct = totalSales > 0 ? (totalWaste / totalSales) * 100 : 0
+    const foodVarPct = totalSales > 0 ? (totalVariance / totalSales) * 100 : 0
+    return {
+      totalSales,
+      avgLaborPct,
+      wastePct,
+      foodVarPct,
+      // Service & Times not available from omega_daily; leave 0/N/A
+      serviceSeconds: 0,
+    }
+  }, [omegaEntries])
+
+  const saveMutation = useMutation({
+    mutationFn: async (payload: GoalsFormData) => {
+      if (!storeId) throw new Error('No store is linked to your account. See Setup to link one.')
+      const upsert = {
+        store_id: storeId,
+        scope,
+        period_start,
+        period_end,
+        sales_target: payload.sales_target,
+        labor_target_pct: payload.labor_target_pct,
+        waste_target_pct: payload.waste_target_pct,
+        food_variance_target_pct: payload.food_variance_target_pct,
+        service_seconds_target: payload.service_seconds_target,
+        team_notes: payload.team_notes || null,
+      }
+      const { error } = await supabase
+        .from('goals')
+        .upsert(upsert, { onConflict: 'store_id,period_start,period_end' })
       if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: 'Success!', description: 'Goal created successfully.' })
-      form.reset()
-      queryClient.invalidateQueries({ queryKey: ['goals', storeId] })
+      toast({ title: 'Saved', description: 'Goals saved for selected period.' })
+      queryClient.invalidateQueries({ queryKey: ['goals_settings', storeId, period_start, period_end] })
     },
     onError: (error: any) => {
       toast({ title: 'Save failed', description: error.message, variant: 'destructive' })
     }
   })
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('goals').delete().eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      toast({ title: 'Deleted', description: 'Goal removed.' })
-      queryClient.invalidateQueries({ queryKey: ['goals', storeId] })
-    },
-    onError: (error: any) => {
-      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' })
-    }
-  })
-
-  // Toggle status mutation
-  const toggleStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: 'OPEN' | 'DONE' }) => {
-      const { error } = await supabase.from('goals').update({ status }).eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals', storeId] })
-    },
-    onError: (error: any) => {
-      toast({ title: 'Update failed', description: error.message, variant: 'destructive' })
-    }
-  })
-
-  const onSubmit = (data: GoalsFormData) => {
-    insertMutation.mutate(data)
+  const handleReset = () => {
+    form.reset({
+      sales_target: 0,
+      labor_target_pct: 25,
+      waste_target_pct: 0.5,
+      food_variance_target_pct: 0.5,
+      service_seconds_target: 60,
+      team_notes: '',
+    })
   }
 
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id)
-  }
-
-  const handleToggleStatus = (id: string, currentStatus: 'OPEN' | 'DONE') => {
-    const newStatus = currentStatus === 'OPEN' ? 'DONE' : 'OPEN'
-    toggleStatusMutation.mutate({ id, status: newStatus })
-  }
+  const statusChip = (ok: boolean, label: string) => (
+    <span className={`px-2 py-1 rounded-full text-xs ${ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+      {label}
+    </span>
+  )
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-wendys-charcoal">Goals</h1>
-          <p className="text-gray-600">Set and track your business goals</p>
+          <h1 className="text-2xl font-bold text-wendys-charcoal">Goal Setting</h1>
+          <p className="text-gray-600">Set targets and track progress against Omega Daily actuals</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleReset}>Reset Goals</Button>
+          <Button className="wendys-button" onClick={form.handleSubmit(values => saveMutation.mutate(values))} disabled={!storeId || saveMutation.isPending}>Save Goals</Button>
         </div>
       </div>
 
-      {/* Add Goal Form */}
-      <div className="wendys-card">
-        <h3 className="text-lg font-semibold text-wendys-charcoal mb-4">Add New Goal</h3>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Goal Title</Label>
-              <Input
-                id="title"
-                {...form.register('title')}
-                placeholder="e.g., Increase Net Sales"
-              />
-              {form.formState.errors.title && (
-                <p className="text-sm text-red-600">{form.formState.errors.title.message}</p>
-              )}
-            </div>
+      {/* Filter toolbar for date/week selection */}
+      <FilterToolbar
+        selectedRange={filters.selectedRange}
+        selectedDate={filters.selectedDate}
+        onRangeChange={filters.handleRangeChange}
+        onDateChange={filters.handleDateChange}
+        onClearFilters={filters.clearFilters}
+      />
 
-            <div className="space-y-2">
-              <Label htmlFor="target_value">Target Value</Label>
-              <Input
-                id="target_value"
-                type="number"
-                step="0.01"
-                {...form.register('target_value')}
-                placeholder="e.g., 5000"
-              />
-              {form.formState.errors.target_value && (
-                <p className="text-sm text-red-600">{form.formState.errors.target_value.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unit</Label>
-              <Input
-                id="unit"
-                {...form.register('unit')}
-                placeholder="e.g., $, %, hours"
-              />
-              {form.formState.errors.unit && (
-                <p className="text-sm text-red-600">{form.formState.errors.unit.message}</p>
-              )}
-            </div>
-          </div>
-
-          {!storeId && (
-            <div className="text-sm text-red-600">
-              Your account isn't linked to a store yet. Open Setup and link your user to a store, then try again.
-            </div>
-          )}
-
-          <div className="flex justify-end">
-            <Button type="submit" className="wendys-button" disabled={insertMutation.isPending || !storeId}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Goal
-            </Button>
-          </div>
-        </form>
-      </div>
-
-      {/* Goals List */}
-      <div className="wendys-card">
-        <h3 className="text-lg font-semibold text-wendys-charcoal mb-4">Your Goals</h3>
-        {goals.length === 0 ? (
-          <p className="text-gray-500">No goals yet. Add your first goal above!</p>
-        ) : (
+      {/* 5 Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Sales */}
+        <div className="wendys-card">
+          <h3 className="text-lg font-semibold text-wendys-charcoal mb-3">Sales</h3>
           <div className="space-y-3">
-            {goals.map((goal) => (
-              <div
-                key={goal.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-              >
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleToggleStatus(goal.id, goal.status)}
-                    className="h-8 w-8 p-0"
-                  >
-                    {goal.status === 'DONE' ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-gray-400" />
-                    )}
-                  </Button>
-                  <div>
-                    <h4 className={`font-medium ${goal.status === 'DONE' ? 'line-through text-gray-500' : 'text-wendys-charcoal'}`}>
-                      {goal.title}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Target: {goal.target_value} {goal.unit}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    goal.status === 'OPEN' 
-                      ? 'bg-blue-100 text-blue-800' 
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {goal.status}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(goal.id)}
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-gray-600">Target</p>
+                <Input type="number" step="0.01" {...form.register('sales_target')} />
               </div>
-            ))}
+              <div>
+                <p className="text-sm text-gray-600">Actual</p>
+                <p className="text-xl font-semibold">${actuals.totalSales.toLocaleString()}</p>
+              </div>
+            </div>
+            <div>
+              {statusChip(actuals.totalSales >= (form.watch('sales_target') || 0), actuals.totalSales >= (form.watch('sales_target') || 0) ? 'On Track' : 'Behind')}
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Labor */}
+        <div className="wendys-card">
+          <h3 className="text-lg font-semibold text-wendys-charcoal mb-3">Labor</h3>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-gray-600">Target %</p>
+                <Input type="number" step="0.1" {...form.register('labor_target_pct')} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Actual %</p>
+                <p className="text-xl font-semibold">{actuals.avgLaborPct.toFixed(1)}%</p>
+              </div>
+            </div>
+            <div>
+              {statusChip(actuals.avgLaborPct <= (form.watch('labor_target_pct') || 0), actuals.avgLaborPct <= (form.watch('labor_target_pct') || 0) ? 'On Track' : 'High')}
+            </div>
+          </div>
+        </div>
+
+        {/* Waste & Food */}
+        <div className="wendys-card">
+          <h3 className="text-lg font-semibold text-wendys-charcoal mb-3">Waste & Food</h3>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-gray-600">Waste Target %</p>
+                <Input type="number" step="0.1" {...form.register('waste_target_pct')} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Waste Actual %</p>
+                <p className="text-xl font-semibold">{actuals.wastePct.toFixed(2)}%</p>
+              </div>
+            </div>
+            <div>
+              {statusChip(actuals.wastePct <= (form.watch('waste_target_pct') || 0), actuals.wastePct <= (form.watch('waste_target_pct') || 0) ? 'On Track' : 'High')}
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div>
+                <p className="text-sm text-gray-600">Food Var Target %</p>
+                <Input type="number" step="0.1" {...form.register('food_variance_target_pct')} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Food Var Actual %</p>
+                <p className="text-xl font-semibold">{actuals.foodVarPct.toFixed(2)}%</p>
+              </div>
+            </div>
+            <div>
+              {statusChip(actuals.foodVarPct <= (form.watch('food_variance_target_pct') || 0), actuals.foodVarPct <= (form.watch('food_variance_target_pct') || 0) ? 'On Track' : 'High')}
+            </div>
+          </div>
+        </div>
+
+        {/* Service & Times */}
+        <div className="wendys-card">
+          <h3 className="text-lg font-semibold text-wendys-charcoal mb-3">Service & Times</h3>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-gray-600">Target Seconds</p>
+                <Input type="number" step="1" {...form.register('service_seconds_target')} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Actual Seconds</p>
+                <p className="text-xl font-semibold">N/A</p>
+              </div>
+            </div>
+            <div>
+              {statusChip(false, 'No Data')}
+            </div>
+          </div>
+        </div>
+
+        {/* Team & Personal */}
+        <div className="wendys-card md:col-span-2 xl:col-span-1">
+          <h3 className="text-lg font-semibold text-wendys-charcoal mb-3">Team & Personal</h3>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="team_notes">Notes</Label>
+              <Input id="team_notes" {...form.register('team_notes')} placeholder="Notes, personal goals, shout-outs..." />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

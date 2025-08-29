@@ -1,3 +1,19 @@
+-- Goals table for Goal Setting tab
+create table if not exists public.goals (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references stores(id) on delete cascade,
+  scope text not null check (scope in ('week','month','custom')),
+  period_start date not null,
+  period_end date not null,
+  sales_target numeric not null default 0,
+  labor_target_pct numeric not null default 0,
+  waste_target_pct numeric not null default 0,
+  food_variance_target_pct numeric not null default 0,
+  service_seconds_target numeric not null default 0,
+  team_notes text,
+  created_at timestamp with time zone default now(),
+  unique (store_id, period_start, period_end)
+);
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -117,6 +133,11 @@ ALTER TABLE omega_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hires ENABLE ROW LEVEL SECURITY;
 ALTER TABLE smg_entries ENABLE ROW LEVEL SECURITY;
+-- RLS Policies for goals
+ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
+CREATE POLICY goals_isolate ON goals
+  FOR ALL USING (store_id = (SELECT store_id FROM users WHERE id = auth.uid()))
+  WITH CHECK (store_id = (SELECT store_id FROM users WHERE id = auth.uid()));
 
 -- RLS Policies for stores (only allow reading own store)
 CREATE POLICY stores_isolate ON stores

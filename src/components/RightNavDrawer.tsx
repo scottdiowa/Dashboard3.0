@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Users, TrendingUp, Wrench } from 'lucide-react'
+import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target } from 'lucide-react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +30,12 @@ const navigationItems = [
     href: '/smg',
     icon: Calendar,
     description: 'Customer feedback metrics'
+  }
+  ,{
+    name: 'Goal Setting',
+    href: '/goals',
+    icon: Target,
+    description: 'Set goals & track progress'
   }
   ,{
     name: 'Setup',
