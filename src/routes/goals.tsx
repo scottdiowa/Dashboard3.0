@@ -99,15 +99,35 @@ export function GoalsPage() {
     queryKey: ['goals_settings', storeId, period_start, period_end],
     queryFn: async () => {
       if (!storeId) return null
-      const { data, error } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('store_id', storeId)
-        .eq('period_start', period_start)
-        .eq('period_end', period_end)
-        .maybeSingle()
-      if (error && error.code !== 'PGRST116') throw error
-      return (data as GoalsRow) || null
+      try {
+        const { data, error } = await supabase
+          .from('goals')
+          .select('*')
+          .eq('store_id', storeId)
+          .eq('period_start', period_start)
+          .eq('period_end', period_end)
+          .maybeSingle()
+        if (error && error.code !== 'PGRST116') {
+          const code = String((error as any).code || '')
+          const msg = String((error as any).message || '')
+          const isMissing = code.startsWith('42') || msg.toLowerCase().includes('relation') || msg.toLowerCase().includes('does not exist')
+          if (isMissing) {
+            console.warn('[Goals] Goals table not available; returning null')
+            return null
+          }
+          throw error
+        }
+        return (data as GoalsRow) || null
+      } catch (e: any) {
+        const code = String(e?.code || '')
+        const msg = String(e?.message || '')
+        const isMissing = code.startsWith('42') || msg.toLowerCase().includes('relation') || msg.toLowerCase().includes('does not exist')
+        if (isMissing) {
+          console.warn('[Goals] Goals table not available; returning null')
+          return null
+        }
+        throw e
+      }
     },
     enabled: !!storeId,
   })
@@ -176,7 +196,15 @@ export function GoalsPage() {
       const { error } = await supabase
         .from('goals')
         .upsert(upsert, { onConflict: 'store_id,period_start,period_end' })
-      if (error) throw error
+      if (error) {
+        const code = String((error as any).code || '')
+        const msg = String((error as any).message || '')
+        const isMissing = code.startsWith('42') || msg.toLowerCase().includes('relation') || msg.toLowerCase().includes('does not exist')
+        if (isMissing) {
+          throw new Error('Goals table is not installed in this Supabase project. Open Setup and run the SQL to create it, then try again.')
+        }
+        throw error
+      }
     },
     onSuccess: () => {
       toast({ title: 'Saved', description: 'Goals saved for selected period.' })
