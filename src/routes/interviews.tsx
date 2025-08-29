@@ -32,73 +32,9 @@ function InterviewsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const { toast } = useToast()
 
-  // Normalize status to match database enum exactly
-  const normalizeStatus = (status: string): 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED' => {
-    const upperStatus = status.toUpperCase()
-    console.log('🔍 [Interviews] Normalizing status:', { input: status, upper: upperStatus })
-    
-    switch (upperStatus) {
-      case 'SCHEDULED':
-      case 'DONE':
-      case 'NO_SHOW':
-      case 'HIRED':
-      case 'REJECTED':
-        console.log('🔍 [Interviews] Status normalized to:', upperStatus)
-        return upperStatus as any
-      default:
-        console.warn('❌ [Interviews] Invalid status value:', status, 'defaulting to SCHEDULED')
-        return 'SCHEDULED'
-    }
-  }
 
-  // Test what enum values the database actually accepts
-  const checkDatabaseEnum = async () => {
-    if (!storeId) return
-    
-    try {
-      console.log('🔍 [Interviews] Testing what enum values database accepts...')
-      
-      const testValues = ['SCHEDULED', 'DONE', 'NO_SHOW', 'HIRED', 'REJECTED', 'scheduled', 'done', 'no_show', 'hired', 'rejected']
-      const validValues: string[] = []
-      
-      for (const testValue of testValues) {
-        try {
-          // Try to insert a test record
-          const { data, error } = await supabase
-            .from('interviews')
-            .insert({
-              store_id: storeId,
-              candidate_name: `ENUM_TEST_${testValue}`,
-              phone: '000-000-0000',
-              email: 'test@test.com',
-              position: 'Test',
-              interview_date: new Date().toISOString().split('T')[0],
-              interview_time: '00:00:00',
-              status: testValue,
-              notes: 'ENUM TEST - WILL BE DELETED'
-            })
-            .select('id')
-          
-          if (!error && data && data.length > 0) {
-            console.log(`✅ [Interviews] "${testValue}" is ACCEPTED`)
-            validValues.push(testValue)
-            
-            // Delete the test record immediately
-            await supabase.from('interviews').delete().eq('id', data[0].id)
-          } else {
-            console.log(`❌ [Interviews] "${testValue}" REJECTED:`, error?.message)
-          }
-        } catch (e) {
-          console.log(`❌ [Interviews] "${testValue}" REJECTED:`, e)
-        }
-      }
-      
-      console.log('🔍 [Interviews] VALID enum values:', validValues)
-      
-    } catch (e) {
-      console.error('❌ [Interviews] Exception in checkDatabaseEnum:', e)
-    }
-  }
+
+
 
   const form = useForm<InterviewFormData>({
     resolver: zodResolver(interviewSchema),
@@ -145,10 +81,7 @@ function InterviewsPage() {
       setStoreId(data?.store_id ?? null)
       console.log('✅ [Interviews] Store ID set to:', data?.store_id ?? null)
       
-      // Check what enum values are actually valid in the database
-      if (data?.store_id) {
-        await checkDatabaseEnum()
-      }
+
     })()
     return () => { active = false }
   }, [])
@@ -210,7 +143,7 @@ function InterviewsPage() {
         position: (payload.position ?? ''),
         interview_date: payload.interview_date,
         interview_time: payload.interview_time,
-        status: normalizeStatus(payload.status),
+        status: payload.status as 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED',
         notes: payload.notes || null,
       }
       
@@ -218,6 +151,8 @@ function InterviewsPage() {
 
       if (payload.id) {
         console.log('🔍 [Interviews] Updating interview with ID:', payload.id)
+        console.log('🔍 [Interviews] Final update payload:', JSON.stringify(base, null, 2))
+        
         const { error } = await supabase
           .from('interviews')
           .update(base)
@@ -235,9 +170,12 @@ function InterviewsPage() {
         return
       } else {
         console.log('🔍 [Interviews] Inserting new interview')
+        const insertPayload = { ...base, store_id: storeId }
+        console.log('🔍 [Interviews] Final insert payload:', JSON.stringify(insertPayload, null, 2))
+        
         const { error } = await supabase
           .from('interviews')
-          .insert([{ ...base, store_id: storeId }])
+          .insert([insertPayload])
         if (error) {
           console.error('❌ [Interviews] Supabase insert error:', error)
           console.error('❌ [Interviews] Error details:', {
@@ -295,7 +233,7 @@ function InterviewsPage() {
       position: interview.position || '',
       interview_date: interview.interview_date,
       interview_time: interview.interview_time,
-      status: normalizeStatus(interview.status),
+      status: interview.status,
       notes: interview.notes || '',
     })
     setIsAddDrawerOpen(true)
@@ -580,7 +518,7 @@ function InterviewsPage() {
                   <Label htmlFor="status">Status *</Label>
                   <Select
                     value={form.watch('status')}
-                    onValueChange={(value) => form.setValue('status', normalizeStatus(value))}
+                    onValueChange={(value) => form.setValue('status', value as 'SCHEDULED' | 'DONE' | 'NO_SHOW' | 'HIRED' | 'REJECTED')}
                   >
                     <SelectTrigger id="status">
                       <SelectValue />
