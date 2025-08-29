@@ -2,7 +2,6 @@ import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, C
 import { Link, useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useState, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 interface RightNavDrawerProps {
