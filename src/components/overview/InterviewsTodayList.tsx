@@ -2,7 +2,7 @@ import { Calendar, Clock, User, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { Link } from '@tanstack/react-router'
 import { getStatusColor } from '@/lib/utils'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase, type Tables } from '@/lib/supabase'
 import { useQuery } from '@tanstack/react-query'
 
