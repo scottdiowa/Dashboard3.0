@@ -22,4 +22,15 @@ export default defineConfig({
   preview: {
     allowedHosts: ['dashboard3-0.onrender.com'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor'
+          }
+        }
+      }
+    }
+  }
 })
