@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "start": "vite preview --host 0.0.0.0 --port $PORT",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
@@ -40,7 +41,9 @@
     "recharts": "^2.8.0",
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
   },
   "devDependencies": {
     "@tanstack/router-devtools": "^1.15.0",
@@ -55,8 +58,9 @@
     "eslint-plugin-react-refresh": "^0.4.4",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
-    "typescript": "^5.2.2",
-    "vite": "^5.0.0",
     "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18 <19"
   }
 }
