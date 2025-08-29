@@ -450,6 +450,65 @@ function InterviewsPage() {
           onClick={async () => {
             if (!storeId) return
             try {
+              console.log('🔍 [Debug] Testing different status values...')
+              
+              // Get an existing interview to test with
+              const { data: testData, error: testError } = await supabase
+                .from('interviews')
+                .select('id, status')
+                .eq('store_id', storeId)
+                .limit(1)
+              
+              if (testError || !testData || testData.length === 0) {
+                console.error('❌ [Debug] No test interview found:', testError)
+                return
+              }
+              
+              const testId = testData[0].id
+              const currentStatus = testData[0].status
+              console.log(`🔍 [Debug] Testing on interview ${testId}, current status: ${currentStatus}`)
+              
+              // Test different status values
+              const testStatuses = ['SCHEDULED', 'DONE', 'NO_SHOW', 'HIRED', 'REJECTED', 'scheduled', 'done', 'no_show', 'hired', 'rejected']
+              
+              for (const testStatus of testStatuses) {
+                try {
+                  console.log(`🔍 [Debug] Testing status: "${testStatus}"`)
+                  const { error: updateError } = await supabase
+                    .from('interviews')
+                    .update({ status: testStatus })
+                    .eq('id', testId)
+                  
+                  if (updateError) {
+                    console.log(`❌ [Debug] "${testStatus}" failed:`, updateError.message)
+                  } else {
+                    console.log(`✅ [Debug] "${testStatus}" succeeded!`)
+                    // Reset back to original status
+                    await supabase
+                      .from('interviews')
+                      .update({ status: currentStatus })
+                      .eq('id', testId)
+                    break
+                  }
+                } catch (e) {
+                  console.log(`❌ [Debug] "${testStatus}" exception:`, e)
+                }
+              }
+              
+            } catch (e) {
+              console.error('❌ [Debug] Exception in status test:', e)
+            }
+          }}
+          className="text-xs ml-2"
+        >
+          Test All Statuses
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          onClick={async () => {
+            if (!storeId) return
+            try {
               console.log('🔍 [Debug] Testing database connection and schema...')
               
               // Test 1: Check if we can read from interviews table
@@ -470,6 +529,30 @@ function InterviewsPage() {
                 console.error('❌ [Debug] User check failed:', userError)
               } else {
                 console.log('✅ [Debug] Current user:', user?.id)
+              }
+              
+              // Test 3: Check what enum values are actually in the database
+              console.log('🔍 [Debug] Checking actual database enum values...')
+              const { data: enumData, error: enumError } = await supabase
+                .rpc('get_enum_values', { enum_name: 'interview_status' })
+              
+              if (enumError) {
+                console.log('⚠️ [Debug] Enum check failed (trying alternative):', enumError)
+                
+                // Try to get enum values by looking at existing data
+                const { data: existingData, error: existingError } = await supabase
+                  .from('interviews')
+                  .select('status')
+                  .limit(100)
+                
+                if (existingError) {
+                  console.error('❌ [Debug] Failed to get existing statuses:', existingError)
+                } else {
+                  const uniqueStatuses = [...new Set(existingData.map(item => item.status))]
+                  console.log('🔍 [Debug] Found statuses in database:', uniqueStatuses)
+                }
+              } else {
+                console.log('✅ [Debug] Database enum values:', enumData)
               }
               
             } catch (e) {
