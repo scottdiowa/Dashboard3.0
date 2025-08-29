@@ -134,10 +134,15 @@ function OmegaDailyPage() {
 
   const insertMutation = useMutation({
     mutationFn: async (payload: OmegaDailyFormData) => {
+      console.log('🔄 Starting insertMutation with payload:', payload)
+      console.log('🏪 Store ID:', storeId)
+      
       if (!storeId) {
+        console.error('❌ No store ID found')
         throw new Error('No store is linked to your account. See Setup to link one.')
       }
-      const { error } = await supabase.from('omega_daily').insert({
+      
+      const insertData = {
         store_id: storeId,
         business_date: payload.business_date, // 'YYYY-MM-DD'
         net_sales: payload.net_sales,
@@ -149,10 +154,24 @@ function OmegaDailyPage() {
         waste_amount: payload.waste_amount,
         breakfast_sales: payload.breakfast_sales,
         night_sales: payload.night_sales,
-      })
-      if (error) throw error
+      }
+      
+      console.log('📤 Inserting data:', insertData)
+      
+      const { data, error } = await supabase.from('omega_daily').insert(insertData).select()
+      
+      console.log('📥 Supabase response - data:', data, 'error:', error)
+      
+      if (error) {
+        console.error('❌ Supabase error:', error)
+        throw error
+      }
+      
+      console.log('✅ Insert successful:', data)
+      return data
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🎉 Insert mutation succeeded with data:', data)
       toast({ title: 'Success!', description: 'Daily metrics saved successfully.' })
       setIsFormOpen(false)
       setEditingEntry(null)
@@ -160,6 +179,7 @@ function OmegaDailyPage() {
       queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
     },
     onError: (error: any) => {
+      console.error('💥 Insert mutation failed:', error)
       toast({ title: 'Save failed', description: error.message, variant: 'destructive' })
     }
   })
@@ -196,16 +216,30 @@ function OmegaDailyPage() {
   })
 
   const onSubmit = (data: OmegaDailyFormData) => {
-    console.log('Form submitted with data:', data)
-    console.log('Form errors:', form.formState.errors)
-    console.log('Store ID:', storeId)
-    console.log('Editing entry:', editingEntry)
+    console.log('🚀 onSubmit called with data:', data)
+    console.log('📋 Form errors:', form.formState.errors)
+    console.log('🏪 Store ID:', storeId)
+    console.log('✏️ Editing entry:', editingEntry)
+    console.log('🔄 Insert mutation pending:', insertMutation.isPending)
+    console.log('🔄 Update mutation pending:', updateMutation.isPending)
     
     if (editingEntry) {
+      console.log('📝 Calling updateMutation...')
       updateMutation.mutate({ id: editingEntry.id, payload: data })
     } else {
+      console.log('➕ Calling insertMutation...')
       insertMutation.mutate(data)
     }
+  }
+
+  // Add error handler for form validation failures
+  const onInvalidSubmit = (errors: any) => {
+    console.error('❌ Form validation failed with errors:', errors)
+    toast({
+      title: 'Validation Error',
+      description: 'Please check the form for errors and try again.',
+      variant: 'destructive'
+    })
   }
 
   const deleteMutation = useMutation({
@@ -225,21 +259,29 @@ function OmegaDailyPage() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const { data: auth } = await supabase.auth.getUser()
+      console.log('🔐 Checking user authentication...')
+      const { data: auth, error: authError } = await supabase.auth.getUser()
+      console.log('👤 Auth data:', auth, 'Auth error:', authError)
+      
       const userId = auth.user?.id
       if (!userId) {
+        console.log('❌ No user ID found - user not authenticated')
         return
       }
 
+      console.log('🔍 Looking up store for user:', userId)
       const { data, error } = await supabase
         .from('users')
         .select('store_id')
         .eq('id', userId)
         .maybeSingle()
 
+      console.log('🏪 Store lookup result - data:', data, 'error:', error)
+
       if (!active) return
 
       if (error) {
+        console.error('❌ Store lookup error:', error)
         toast({
           title: 'Connection Error',
           description: 'Unable to connect to your store. Please check your setup.',
@@ -249,8 +291,10 @@ function OmegaDailyPage() {
       }
 
       setStoreId(data?.store_id ?? null)
+      console.log('✅ Store ID set to:', data?.store_id ?? null)
 
       if (!data?.store_id) {
+        console.log('⚠️ No store linked to user account')
         toast({
           title: 'Store Not Linked',
           description: 'Your account isn\'t linked to a store yet. Please go to Setup to link your account.',
@@ -780,7 +824,7 @@ function OmegaDailyPage() {
               </Button>
             </div>
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-4">
               {/* Form-level errors */}
               {Object.keys(form.formState.errors).length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -880,6 +924,9 @@ function OmegaDailyPage() {
                     step="0.01"
                     {...form.register('last_year_sales')}
                   />
+                  {form.formState.errors.last_year_sales && (
+                    <p className="text-sm text-red-600">{form.formState.errors.last_year_sales.message}</p>
+                  )}
                 </div>
 
                 {/* Comp Net Sales Percentage (Computed) */}
@@ -902,6 +949,9 @@ function OmegaDailyPage() {
                     step="0.1"
                     {...form.register('labor_hours')}
                   />
+                  {form.formState.errors.labor_hours && (
+                    <p className="text-sm text-red-600">{form.formState.errors.labor_hours.message}</p>
+                  )}
                 </div>
 
                 {/* Ideal Labor Hours */}
@@ -913,6 +963,9 @@ function OmegaDailyPage() {
                     step="0.1"
                     {...form.register('ideal_labor_hours')}
                   />
+                  {form.formState.errors.ideal_labor_hours && (
+                    <p className="text-sm text-red-600">{form.formState.errors.ideal_labor_hours.message}</p>
+                  )}
                 </div>
 
                 {/* Labor Hours Diff (Computed) */}
@@ -935,6 +988,9 @@ function OmegaDailyPage() {
                     step="0.1"
                     {...form.register('labor_percentage')}
                   />
+                  {form.formState.errors.labor_percentage && (
+                    <p className="text-sm text-red-600">{form.formState.errors.labor_percentage.message}</p>
+                  )}
                 </div>
 
                 {/* Food Variance Cost */}
@@ -946,6 +1002,9 @@ function OmegaDailyPage() {
                     step="0.01"
                     {...form.register('food_variance_cost')}
                   />
+                  {form.formState.errors.food_variance_cost && (
+                    <p className="text-sm text-red-600">{form.formState.errors.food_variance_cost.message}</p>
+                  )}
                 </div>
 
                 {/* Food Variance Percentage (Computed) */}
@@ -968,6 +1027,9 @@ function OmegaDailyPage() {
                     step="0.01"
                     {...form.register('waste_amount')}
                   />
+                  {form.formState.errors.waste_amount && (
+                    <p className="text-sm text-red-600">{form.formState.errors.waste_amount.message}</p>
+                  )}
                 </div>
 
                 {/* Waste Percentage (Computed) */}
@@ -990,6 +1052,9 @@ function OmegaDailyPage() {
                     step="0.01"
                     {...form.register('breakfast_sales')}
                   />
+                  {form.formState.errors.breakfast_sales && (
+                    <p className="text-sm text-red-600">{form.formState.errors.breakfast_sales.message}</p>
+                  )}
                 </div>
 
                 {/* Night Sales */}
@@ -1001,6 +1066,9 @@ function OmegaDailyPage() {
                     step="0.01"
                     {...form.register('night_sales')}
                   />
+                  {form.formState.errors.night_sales && (
+                    <p className="text-sm text-red-600">{form.formState.errors.night_sales.message}</p>
+                  )}
                 </div>
               </div>
 
