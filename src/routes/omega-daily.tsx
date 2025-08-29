@@ -963,7 +963,7 @@ function OmegaDailyPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date Field */}
                 <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="business_date">Business Date</Label>
+                  <Label>Business Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
