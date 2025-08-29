@@ -1,0 +1,1 @@
+62d5e884 smg: show data by falling back to smg_entries when no manual entries; parse dates as local yyyy-MM-dd to avoid drift

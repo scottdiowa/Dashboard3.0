@@ -49,19 +49,21 @@ function SmgPage() {
     }
   })
 
-  // Resolve store_id for current user
+  // Resolve store_id for current user (align with omega-daily pattern)
   useEffect(() => {
     let active = true
     ;(async () => {
-      const { data } = await supabase
+      const { data: auth } = await supabase.auth.getUser()
+      const userId = auth.user?.id
+      if (!userId) return
+      const { data, error } = await supabase
         .from('users')
         .select('store_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single()
-      
-      if (active) {
-        setStoreId(data?.store_id ?? null)
-      }
+        .eq('id', userId)
+        .maybeSingle()
+      if (!active) return
+      if (error) return
+      setStoreId(data?.store_id ?? null)
     })()
     return () => { active = false }
   }, [])
