@@ -19,6 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Bar, ReferenceLine } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { QueryKey } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/omega-daily')({
   component: OmegaDailyPage,
@@ -133,7 +134,12 @@ function OmegaDailyPage() {
     },
   })
 
-  const insertMutation = useMutation({
+  const insertMutation = useMutation<
+    OmegaDailyRow[] | null,
+    any,
+    OmegaDailyFormData,
+    { optimisticId: string; touchedCaches: Array<{ queryKey: QueryKey; previousData: OmegaDailyRow[] | undefined }> }
+  >({
     // Optimistic update before the API request
     onMutate: async (payload: OmegaDailyFormData) => {
       if (!storeId) {
@@ -159,11 +165,11 @@ function OmegaDailyPage() {
       }
 
       // Update all omega_daily caches that might include this entry
-      const touchedCaches: Array<{ queryKey: unknown; previousData: OmegaDailyRow[] | undefined }> = []
+      const touchedCaches: Array<{ queryKey: QueryKey; previousData: OmegaDailyRow[] | undefined }> = []
       const queries = queryClient.getQueriesData<OmegaDailyRow[]>({ queryKey: ['omega_daily'] })
       for (const [key, previousData] of queries) {
         // Key format: ['omega_daily', storeId, start?, end?]
-        const k = Array.isArray(key) ? key : []
+        const k = key as unknown[]
         const keyIncludesStore = k.includes(storeId)
         if (!keyIncludesStore) continue
 
@@ -180,7 +186,7 @@ function OmegaDailyPage() {
         next.sort((a, b) => (a.business_date > b.business_date ? -1 : a.business_date < b.business_date ? 1 : 0))
 
         touchedCaches.push({ queryKey: key, previousData })
-        queryClient.setQueryData(key, next)
+        queryClient.setQueryData<OmegaDailyRow[]>(key, next)
       }
 
       return { optimisticId, touchedCaches }
@@ -226,7 +232,7 @@ function OmegaDailyPage() {
       // Roll back optimistic updates
       if (context?.touchedCaches) {
         for (const { queryKey, previousData } of context.touchedCaches) {
-          queryClient.setQueryData(queryKey, previousData)
+          queryClient.setQueryData<OmegaDailyRow[]>(queryKey, previousData || [])
         }
       }
       console.error('💥 Insert mutation failed (rolled back):', error)
@@ -239,9 +245,9 @@ function OmegaDailyPage() {
       const saved = Array.isArray(data) && data[0] ? data[0] as unknown as OmegaDailyRow : undefined
       if (saved && context?.touchedCaches && context.optimisticId) {
         for (const { queryKey } of context.touchedCaches) {
-          const current = queryClient.getQueryData<OmegaDailyRow[]>(queryKey) || []
-          const replaced = current.map(row => row.id === context.optimisticId ? saved : row)
-          queryClient.setQueryData(queryKey, replaced)
+          const current = (queryClient.getQueryData<OmegaDailyRow[]>(queryKey) ?? []) as OmegaDailyRow[]
+          const replaced = current.map((row: OmegaDailyRow) => row.id === context.optimisticId ? saved : row)
+          queryClient.setQueryData<OmegaDailyRow[]>(queryKey, replaced)
         }
       }
       setIsFormOpen(false)
@@ -249,10 +255,6 @@ function OmegaDailyPage() {
       form.reset()
       // Optionally refresh to ensure all views are consistent
       // queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
-    },
-    onError: (error: any) => {
-      console.error('💥 Insert mutation failed:', error)
-      toast({ title: 'Save failed', description: error.message, variant: 'destructive' })
     }
   })
 
