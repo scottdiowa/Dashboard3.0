@@ -485,7 +485,7 @@ function OmegaDailyPage() {
       date: chartFormatters.dateShort(r.business_date),
       dateFull: chartFormatters.dateFull(r.business_date),
       isoDate: typeof r.business_date === 'string' ? r.business_date : (r.business_date as unknown as string),
-      comp_net_sales: (r.net_sales ?? 0) - (r.last_year_sales ?? 0),
+      comp_net_sales_percentage: r.last_year_sales ? ((r.net_sales - r.last_year_sales) / r.last_year_sales) * 100 : 0,
     }))
   }, [chartData])
 
@@ -497,7 +497,7 @@ function OmegaDailyPage() {
       dateFull: chartFormatters.dateFull(r.business_date),
       isoDate: typeof r.business_date === 'string' ? r.business_date : (r.business_date as unknown as string),
       waste_percentage: r.net_sales ? (r.waste_amount / r.net_sales) * 100 : 0,
-      food_variance_percentage: r.net_sales ? (r.food_variance_cost / r.net_sales) * 100 : 0,
+      food_variance_percentage: r.net_sales ? -(r.food_variance_cost / r.net_sales) * 100 : 0,
     }))
   }, [chartData])
 
@@ -645,17 +645,17 @@ function OmegaDailyPage() {
             <LineChart data={chartDataCompSales}>
                 <CartesianGrid {...chartDefaults.cartesianGrid} />
                 <XAxis dataKey="date" {...chartDefaults.xAxis} />
-                <YAxis {...chartDefaults.yAxis} tickFormatter={(value) => chartFormatters.currencyCompact(value)} />
-                <Tooltip 
+                <YAxis {...chartDefaults.yAxis} tickFormatter={(value) => chartFormatters.percent(value)} />
+                <Tooltip
                   {...chartDefaults.tooltip}
-                  formatter={(value) => [chartFormatters.currencyDetailed(value as number), 'Comp Sales']}
+                  formatter={(value) => [chartFormatters.percent(value as number, 1), 'Comp Sales %']}
                   labelFormatter={(label, payload: any) => (payload && payload[0] && payload[0].payload?.dateFull) || label}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="comp_net_sales" 
-                  stroke={chartColors.sales} 
-                  strokeWidth={2} 
+                <Line
+                  type="monotone"
+                  dataKey="comp_net_sales_percentage"
+                  stroke={chartColors.sales}
+                  strokeWidth={2}
                   dot={{ fill: chartColors.sales, strokeWidth: 2, r: 3 }}
                   activeDot={{ r: 5, stroke: chartColors.salesSecondary, strokeWidth: 2 }}
                   onClick={(d: any) => applyDateFilter(d?.payload?.isoDate)}
@@ -717,9 +717,14 @@ function OmegaDailyPage() {
                 <CartesianGrid {...chartDefaults.cartesianGrid} />
                 <XAxis dataKey="date" {...chartDefaults.xAxis} />
                 <YAxis {...chartDefaults.yAxis} tickFormatter={(value) => chartFormatters.percent(value)} />
-                <Tooltip 
+                <Tooltip
                   {...chartDefaults.tooltip}
-                  formatter={(value) => [chartFormatters.percent(value as number, 2), 'Food Variance %']}
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  formatter={(_value, _name, props) => {
+                    // Show the actual food variance percentage (not inverted) in tooltip
+                    const originalValue = props?.payload?.food_variance_percentage !== undefined ? -props.payload.food_variance_percentage : 0
+                    return [chartFormatters.percent(originalValue, 2), 'Food Variance %']
+                  }}
                   labelFormatter={(label, payload: any) => (payload && payload[0] && payload[0].payload?.dateFull) || label}
                 />
                 <ReferenceLine y={0} stroke={chartColors.textSecondary} strokeDasharray="4 4" label={{ value: 'Target 0%', position: 'right', fill: chartColors.textSecondary, fontSize: 12 }} />
