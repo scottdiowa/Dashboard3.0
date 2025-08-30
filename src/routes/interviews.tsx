@@ -175,6 +175,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                 status: status,
                 position: 'Test Position' // Required field
               }])
+              .select()
             
             if (insertError) {
               console.log(`❌ Status "${status}" rejected:`, insertError.message)
@@ -391,6 +392,11 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
       return
     }
 
+    if (!formData.position.trim()) {
+      toast({ title: 'Error', description: 'Position is required', variant: 'destructive' })
+      return
+    }
+
     if (!formData.interview_date) {
       toast({ title: 'Error', description: 'Interview date is required', variant: 'destructive' })
         return
@@ -421,7 +427,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             candidate_name: formData.candidate_name,
             phone: formData.phone || null,
             email: formData.email || null,
-            position: formData.position || null,
+            position: formData.position,
             interview_date: formData.interview_date,
             interview_time: formattedTime,
             status: formData.status,
@@ -453,7 +459,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             candidate_name: formData.candidate_name,
             phone: formData.phone || null,
             email: formData.email || null,
-            position: formData.position || null,
+            position: formData.position,
             interview_date: formData.interview_date,
             interview_time: formattedTime,
             status: formData.status,
