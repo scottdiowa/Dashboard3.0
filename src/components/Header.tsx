@@ -14,10 +14,9 @@ interface HeaderProps {
   user: any
   onNavToggle: () => void
   navOpen: boolean
-  isMobile?: boolean
 }
 
-export function Header({ user, onNavToggle, navOpen, isMobile = false }: HeaderProps) {
+export function Header({ user, onNavToggle, navOpen }: HeaderProps) {
   const { toast } = useToast()
 
   const handleSignOut = async () => {

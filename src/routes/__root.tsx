@@ -165,7 +165,6 @@ function RootComponent() {
         user={user} 
         onNavToggle={() => setNavOpen(!navOpen)}
         navOpen={navOpen}
-        isMobile={isMobile}
       />
       
       <div className="flex relative">
