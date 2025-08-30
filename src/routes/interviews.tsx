@@ -291,8 +291,9 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
           throw error
         } else {
           console.log('Calendar event deleted successfully for interview:', interviewId)
-          // Invalidate calendar events query to refresh the calendar UI
+          // Force immediate refetch of calendar events to refresh the calendar UI
           queryClient.invalidateQueries({ queryKey: ['calendar-events', userId] })
+          queryClient.refetchQueries({ queryKey: ['calendar-events', userId] })
         }
       } else {
         console.log('No calendar event found to delete for interview:', interviewId)
@@ -382,8 +383,9 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             console.error('Error updating calendar event:', error)
           } else {
             console.log('Calendar event updated successfully for interview:', interview.id)
-            // Invalidate calendar events query to refresh the calendar UI
+            // Force immediate refetch of calendar events to refresh the calendar UI
             queryClient.invalidateQueries({ queryKey: ['calendar-events', userId] })
+            queryClient.refetchQueries({ queryKey: ['calendar-events', userId] })
           }
         } else {
           // Create new calendar event if none exists
@@ -395,8 +397,9 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             console.error('Error creating calendar event:', error)
           } else {
             console.log('Calendar event created successfully for interview:', interview.id)
-            // Invalidate calendar events query to refresh the calendar UI
+            // Force immediate refetch of calendar events to refresh the calendar UI
             queryClient.invalidateQueries({ queryKey: ['calendar-events', userId] })
+            queryClient.refetchQueries({ queryKey: ['calendar-events', userId] })
           }
         }
       } else {
@@ -414,8 +417,9 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
           })
         } else {
           console.log('Calendar event created successfully for interview:', interview.id)
-          // Invalidate calendar events query to refresh the calendar UI
+          // Force immediate refetch of calendar events to refresh the calendar UI
           queryClient.invalidateQueries({ queryKey: ['calendar-events', userId] })
+          queryClient.refetchQueries({ queryKey: ['calendar-events', userId] })
         }
       }
     } catch (error) {
