@@ -54,13 +54,13 @@ function InterviewsPage() {
 
   // Form state
   const [formData, setFormData] = useState<InterviewFormData>({
-    candidate_name: '',
-    phone: '',
-    email: '',
-    position: '',
+      candidate_name: '',
+      phone: '',
+      email: '',
+      position: '',
     interview_date: '',
     interview_time: '',
-    status: 'SCHEDULED',
+      status: 'SCHEDULED',
     notes: ''
   })
 
@@ -74,14 +74,17 @@ function InterviewsPage() {
         setUserId(user.id)
 
         const { data } = await supabase
-          .from('users')
-          .select('store_id')
+        .from('users')
+        .select('store_id')
           .eq('id', user.id)
           .single()
 
         if (data?.store_id) {
           setStoreId(data.store_id)
           fetchInterviews(data.store_id)
+          
+          // Check database enum values for debugging
+          checkDatabaseEnumValues(data.store_id)
         }
       } catch (error) {
         console.error('Error getting store ID:', error)
@@ -90,6 +93,59 @@ function InterviewsPage() {
 
     getStoreId()
   }, [])
+
+  // Function to check what enum values the database actually accepts
+  const checkDatabaseEnumValues = async (storeId: string) => {
+    try {
+      console.log('🔍 Checking database enum values...')
+      
+      // Try to get the current enum definition
+      const { data: enumData, error: enumError } = await supabase
+        .rpc('get_enum_values', { enum_name: 'interview_status' })
+      
+      if (enumError) {
+        console.log('Could not get enum values via RPC, trying direct query...')
+        
+        // Try to insert test records with different status values
+        const testStatuses = ['SCHEDULED', 'COMPLETED', 'NO_SHOW', 'HIRED', 'REJECTED', 'DONE']
+        
+        for (const status of testStatuses) {
+          try {
+            console.log(`Testing status: "${status}"`)
+            
+            // Try to insert a test record
+            const { error: insertError } = await supabase
+              .from('interviews')
+              .insert([{
+                store_id: storeId,
+                candidate_name: `TEST_${status}`,
+                interview_date: new Date().toISOString().split('T')[0],
+                interview_time: '12:00:00',
+                status: status
+              }])
+            
+            if (insertError) {
+              console.log(`❌ Status "${status}" rejected:`, insertError.message)
+            } else {
+              console.log(`✅ Status "${status}" accepted`)
+              
+              // Clean up test record
+              await supabase
+                .from('interviews')
+                .delete()
+                .eq('candidate_name', `TEST_${status}`)
+            }
+          } catch (testError) {
+            console.log(`❌ Status "${status}" failed:`, testError)
+          }
+        }
+      } else {
+        console.log('✅ Database enum values:', enumData)
+      }
+    } catch (error) {
+      console.error('Error checking database enum values:', error)
+    }
+  }
 
   // Fetch interviews
   const fetchInterviews = async (storeId: string) => {
@@ -231,7 +287,7 @@ function InterviewsPage() {
           }
         } else {
           // Create new calendar event if none exists
-          const { error } = await supabase
+        const { error } = await supabase
             .from('calendar_events')
             .insert([{ ...eventData, created_by: userId }])
 
@@ -285,8 +341,8 @@ function InterviewsPage() {
 
     if (!formData.interview_date) {
       toast({ title: 'Error', description: 'Interview date is required', variant: 'destructive' })
-      return
-    }
+        return
+      }
 
     if (!formData.interview_time) {
       toast({ title: 'Error', description: 'Interview time is required', variant: 'destructive' })
@@ -354,7 +410,7 @@ function InterviewsPage() {
           .select()
           .single()
 
-        if (error) throw error
+      if (error) throw error
 
         // Create calendar event for the new interview (don't block on failure)
         if (newInterview) {
@@ -375,8 +431,11 @@ function InterviewsPage() {
       resetForm()
     } catch (error: any) {
       console.error('Error saving interview:', error)
+      console.error('Full error object:', JSON.stringify(error, null, 2))
+      console.error('Error message:', error.message)
       console.error('Error details:', error.details)
       console.error('Error hint:', error.hint)
+      console.error('Error code:', error.code)
 
       let errorMessage = 'Failed to save interview'
       if (error.message) {
@@ -385,6 +444,8 @@ function InterviewsPage() {
         errorMessage = `Database error: ${error.details}`
       } else if (error.hint) {
         errorMessage = `Hint: ${error.hint}`
+      } else if (error.code) {
+        errorMessage = `Error code: ${error.code}`
       }
 
       toast({
@@ -439,16 +500,16 @@ function InterviewsPage() {
   const filteredInterviews = interviews.filter(interview => {
     const matchesSearch = interview.candidate_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (interview.position || '').toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'ALL' || interview.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+      const matchesStatus = statusFilter === 'ALL' || interview.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
 
   // Group interviews by date
   const groupedInterviews = filteredInterviews.reduce((groups: Record<string, Interview[]>, interview) => {
-    const date = interview.interview_date
-    if (!groups[date]) groups[date] = []
-    groups[date].push(interview)
-    return groups
+      const date = interview.interview_date
+      if (!groups[date]) groups[date] = []
+      groups[date].push(interview)
+      return groups
   }, {})
 
   return (
@@ -661,25 +722,25 @@ function InterviewsPage() {
                     required
                   />
                 </div>
-              </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="status">Status *</Label>
-                <Select
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status *</Label>
+                  <Select
                   value={formData.status}
                   onValueChange={(value) => handleInputChange('status', value)}
-                >
+                  >
                   <SelectTrigger id="status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SCHEDULED">Scheduled</SelectItem>
                     <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="NO_SHOW">No Show</SelectItem>
-                    <SelectItem value="HIRED">Hired</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
+                      <SelectItem value="NO_SHOW">No Show</SelectItem>
+                      <SelectItem value="HIRED">Hired</SelectItem>
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
               </div>
 
               <div className="space-y-2">
@@ -693,20 +754,31 @@ function InterviewsPage() {
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-between items-center pt-4">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    setIsAddDrawerOpen(false)
-                    resetForm()
-                  }}
+                  onClick={() => checkDatabaseEnumValues(storeId!)}
+                  className="text-xs"
                 >
-                  Cancel
+                  Test Database Enum
                 </Button>
-                <Button type="submit" className="wendys-button">
-                  {editingInterview ? 'Update Interview' : 'Schedule Interview'}
-                </Button>
+                
+                <div className="flex space-x-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsAddDrawerOpen(false)
+                      resetForm()
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="wendys-button">
+                    {editingInterview ? 'Update Interview' : 'Schedule Interview'}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>

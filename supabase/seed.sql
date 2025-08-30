@@ -53,7 +53,7 @@ INSERT INTO omega_daily (store_id, business_date, net_sales, last_year_sales, la
 -- Insert sample interviews
 INSERT INTO interviews (store_id, candidate_name, phone, email, position, interview_date, interview_time, status, notes) VALUES
 ('550e8400-e29b-41d4-a716-446655440000', 'John Smith', '555-0101', 'john.smith@email.com', 'Crew Member', CURRENT_DATE + INTERVAL '1 day', '14:00:00', 'SCHEDULED', 'Experienced in food service'),
-('550e8400-e29b-41d4-a716-446655440000', 'Sarah Johnson', '555-0102', 'sarah.j@email.com', 'Shift Leader', CURRENT_DATE, '10:00:00', 'DONE', 'Great communication skills, recommended for hire'),
+('550e8400-e29b-41d4-a716-446655440000', 'Sarah Johnson', '555-0102', 'sarah.j@email.com', 'Shift Leader', CURRENT_DATE, '10:00:00', 'COMPLETED', 'Great communication skills, recommended for hire'),
 ('550e8400-e29b-41d4-a716-446655440000', 'Mike Davis', '555-0103', 'mike.d@email.com', 'Crew Member', CURRENT_DATE - INTERVAL '1 day', '15:30:00', 'NO_SHOW', 'No call, no show'),
 ('550e8400-e29b-41d4-a716-446655440000', 'Lisa Wilson', '555-0104', 'lisa.w@email.com', 'Crew Member', CURRENT_DATE - INTERVAL '2 days', '11:00:00', 'HIRED', 'Excellent candidate, starting next week'),
 ('550e8400-e29b-41d4-a716-446655440000', 'Tom Brown', '555-0105', 'tom.b@email.com', 'Crew Member', CURRENT_DATE - INTERVAL '3 days', '16:00:00', 'REJECTED', 'Not a good fit for the team');
