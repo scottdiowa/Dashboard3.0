@@ -14,9 +14,10 @@ interface HeaderProps {
   user: any
   onNavToggle: () => void
   navOpen: boolean
+  isMobile?: boolean
 }
 
-export function Header({ user, onNavToggle, navOpen }: HeaderProps) {
+export function Header({ user, onNavToggle, navOpen, isMobile = false }: HeaderProps) {
   const { toast } = useToast()
 
   const handleSignOut = async () => {
@@ -37,40 +38,41 @@ export function Header({ user, onNavToggle, navOpen }: HeaderProps) {
   }
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center space-x-4">
+    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={onNavToggle}
-            className="p-2 hover:bg-gray-100"
+            className="tap p-2 hover:bg-gray-100"
             aria-label={navOpen ? "Close navigation" : "Open navigation"}
           >
             <Menu className="h-5 w-5 text-wendys-charcoal" />
           </Button>
           
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-wendys-red rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-xl">W</span>
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-wendys-red rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm sm:text-xl">W</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-wendys-charcoal">
-                SE 14th GM Dashboard
+              <h1 className="text-lg sm:text-xl font-bold text-wendys-charcoal">
+                <span className="hidden sm:inline">SE 14th GM Dashboard</span>
+                <span className="sm:hidden">Dashboard</span>
               </h1>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500 hide-on-mobile">
                 {format(new Date(), 'EEEE, MMMM d, yyyy')}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2">
+              <Button variant="ghost" className="flex items-center space-x-1 sm:space-x-2 tap">
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{user.email}</span>
+                <span className="hidden sm:inline text-sm">{user.email}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

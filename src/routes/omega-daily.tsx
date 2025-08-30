@@ -598,7 +598,7 @@ function OmegaDailyPage() {
           const mtdWastePct = mtdNetSales > 0 ? (totalWaste / mtdNetSales) * 100 : 0
 
           return (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid-auto">
               <div className="text-center sm:text-left">
                 <p className="text-xs sm:text-sm text-gray-600">MTD Net Sales</p>
                 <p className="mt-1 text-2xl sm:text-3xl font-bold text-wendys-charcoal">{formatCurrency(mtdNetSales)}</p>
@@ -632,7 +632,7 @@ function OmegaDailyPage() {
       )}
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid-auto">
         {/* Comp Net Sales Chart */}
         <ChartCard
           title="Comp Net Sales Trend"
@@ -641,7 +641,8 @@ function OmegaDailyPage() {
           error={error?.message}
         >
           {chartDataCompSales.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartDataCompSales}>
                 <CartesianGrid {...chartDefaults.cartesianGrid} />
                 <XAxis dataKey="date" {...chartDefaults.xAxis} />
@@ -662,6 +663,7 @@ function OmegaDailyPage() {
                 />
             </LineChart>
           </ResponsiveContainer>
+          </div>
           ) : (
             <div className="flex items-center justify-center h-[300px] text-gray-500">
               <div className="text-center">
@@ -680,7 +682,8 @@ function OmegaDailyPage() {
           error={error?.message}
         >
           {chartDataWasteFood.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartDataWasteFood}>
                 <CartesianGrid {...chartDefaults.cartesianGrid} />
                 <XAxis dataKey="date" {...chartDefaults.xAxis} />
@@ -694,6 +697,7 @@ function OmegaDailyPage() {
                 <Bar dataKey="waste_percentage" fill={chartColors.waste} opacity={0.7} onClick={(d: any) => applyDateFilter(d?.payload?.isoDate)} />
             </ComposedChart>
           </ResponsiveContainer>
+          </div>
           ) : (
             <div className="flex items-center justify-center h-[300px] text-gray-500">
               <div className="text-center">
@@ -712,7 +716,8 @@ function OmegaDailyPage() {
           error={error?.message}
         >
           {chartDataWasteFood.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartDataWasteFood}>
                 <CartesianGrid {...chartDefaults.cartesianGrid} />
                 <XAxis dataKey="date" {...chartDefaults.xAxis} />
@@ -739,6 +744,7 @@ function OmegaDailyPage() {
                 />
               </LineChart>
             </ResponsiveContainer>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-[300px] text-gray-500">
               <div className="text-center">

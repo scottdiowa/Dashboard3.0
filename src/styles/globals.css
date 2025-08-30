@@ -24,6 +24,12 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    
+    /* Mobile-first design tokens */
+    --gap: 12px;
+    --tap: 44px;
+    --mobile-padding: 16px;
+    --desktop-padding: 24px;
   }
 
   .dark {
@@ -53,30 +59,124 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    font-size: 16px;
+    overflow-x: hidden;
+  }
+  
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  /* Fluid typography */
+  h1 { font-size: clamp(1.5rem, 4vw, 2.25rem); }
+  h2 { font-size: clamp(1.25rem, 3.5vw, 1.875rem); }
+  h3 { font-size: clamp(1.125rem, 3vw, 1.5rem); }
+  
+  /* Responsive images and media */
+  img, canvas, svg, video {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Form improvements for mobile */
+  input, button, select, textarea {
+    min-height: var(--tap);
+    font-size: 16px; /* Prevent iOS zoom */
+    line-height: 1.2;
+  }
+  
+  /* Focus styles */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
   }
 }
 
 @layer components {
+  /* Skip to content link */
+  .skip-link {
+    @apply absolute -top-10 left-2 bg-black text-white px-2 py-1 rounded z-50;
+  }
+  
+  .skip-link:focus {
+    @apply top-2;
+  }
+  
+  /* Mobile-first utilities */
+  .tap {
+    min-height: var(--tap);
+    min-width: var(--tap);
+  }
+  
+  .grid-auto {
+    @apply grid grid-cols-1 gap-3;
+  }
+  
+  @media (min-width: 640px) {
+    .grid-auto {
+      @apply grid-cols-2;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .grid-auto {
+      @apply grid-cols-3;
+    }
+  }
+  
+  .table-scroll {
+    @apply overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .hide-on-mobile {
+    @apply hidden sm:block;
+  }
+  
+  .show-on-mobile {
+    @apply block sm:hidden;
+  }
+  
+  .mobile-container {
+    @apply px-4 max-w-full overflow-x-hidden;
+  }
+  
+  @media (min-width: 640px) {
+    .mobile-container {
+      @apply px-6;
+    }
+  }
+  
+  .chart-container {
+    @apply w-full;
+    height: clamp(220px, 35vh, 420px);
+  }
+
   .wendys-gradient {
     background: linear-gradient(135deg, #E2231A 0%, #B71C13 100%);
   }
   
   .wendys-card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6;
   }
   
   .wendys-button {
-    @apply bg-wendys-red hover:bg-wendys-dark-red text-white font-medium py-2 px-4 rounded-md transition-colors duration-200;
+    @apply bg-wendys-red hover:bg-wendys-dark-red text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 tap;
   }
   
   .wendys-button-secondary {
-    @apply bg-gray-100 hover:bg-gray-200 text-wendys-charcoal font-medium py-2 px-4 rounded-md transition-colors duration-200;
+    @apply bg-gray-100 hover:bg-gray-200 text-wendys-charcoal font-medium py-2 px-4 rounded-md transition-colors duration-200 tap;
   }
   
   .kpi-value {
-    @apply text-3xl font-bold text-wendys-charcoal;
+    @apply text-2xl sm:text-3xl font-bold text-wendys-charcoal;
   }
   
   .kpi-label {

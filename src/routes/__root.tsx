@@ -1,5 +1,5 @@
 import { createRootRoute, Outlet, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { RightNavDrawer } from '@/components/RightNavDrawer'
 import { Header } from '@/components/Header'
@@ -16,10 +16,60 @@ function RootComponent() {
   const [loading, setLoading] = useState(true)
   const [navOpen, setNavOpen] = useState(() => {
     const saved = localStorage.getItem('navOpen')
-    return saved ? JSON.parse(saved) : true
+    // Default to closed on mobile, open on desktop
+    const defaultOpen = typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+    return saved ? JSON.parse(saved) : defaultOpen
   })
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false)
+  const navRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const navigate = useNavigate()
+
+  // Handle mobile detection
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      
+      // Auto-close nav on mobile when switching to mobile view
+      if (mobile && navOpen) {
+        setNavOpen(false)
+      }
+    }
+    
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [navOpen])
+
+  // Handle escape key and click outside for mobile nav
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && navOpen && isMobile) {
+        setNavOpen(false)
+      }
+    }
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isMobile && navOpen && navRef.current && !navRef.current.contains(e.target as Node)) {
+        setNavOpen(false)
+      }
+    }
+    
+    if (navOpen && isMobile) {
+      document.addEventListener('keydown', handleEscape)
+      document.addEventListener('mousedown', handleClickOutside)
+      // Prevent body scroll when nav is open on mobile
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.body.style.overflow = 'unset'
+    }
+  }, [navOpen, isMobile])
 
   useEffect(() => {
     // Check for existing session
@@ -107,17 +157,40 @@ function RootComponent() {
 
   return (
     <div className="min-h-screen bg-wendys-gray">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      
       <Header 
         user={user} 
         onNavToggle={() => setNavOpen(!navOpen)}
         navOpen={navOpen}
+        isMobile={isMobile}
       />
-      <div className="flex">
-        <RightNavDrawer open={navOpen} />
-        <main className={cn(
-          "flex-1 p-6 transition-all duration-300 ease-in-out",
-          navOpen ? "ml-0" : "ml-0"
-        )}>
+      
+      <div className="flex relative">
+        {/* Mobile overlay */}
+        {isMobile && navOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 backdrop-blur-sm"
+            onClick={() => setNavOpen(false)}
+          />
+        )}
+        
+        <RightNavDrawer 
+          open={navOpen} 
+          isMobile={isMobile}
+          onClose={() => setNavOpen(false)}
+          ref={navRef}
+        />
+        
+        <main 
+          id="main-content"
+          className={cn(
+            "flex-1 transition-all duration-300 ease-in-out mobile-container",
+            !isMobile && navOpen ? "ml-0" : "ml-0"
+          )}
+        >
           <Outlet />
         </main>
       </div>
