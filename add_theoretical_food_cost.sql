@@ -22,3 +22,4 @@ UPDATE omega_daily SET theoretical_food_cost = net_sales * 0.30 WHERE theoretica
 
 
 
+
