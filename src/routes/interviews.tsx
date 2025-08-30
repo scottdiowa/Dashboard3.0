@@ -236,10 +236,33 @@ function InterviewsPage() {
 
   // Save interview (create or update)
   const saveInterview = async () => {
+    if (!userId) {
+      toast({ title: 'Error', description: 'User not authenticated', variant: 'destructive' })
+      return
+    }
+
     if (!storeId) {
       toast({ title: 'Error', description: 'No store selected', variant: 'destructive' })
       return
     }
+
+    // Validate required fields
+    if (!formData.candidate_name.trim()) {
+      toast({ title: 'Error', description: 'Candidate name is required', variant: 'destructive' })
+      return
+    }
+
+    if (!formData.interview_date) {
+      toast({ title: 'Error', description: 'Interview date is required', variant: 'destructive' })
+      return
+    }
+
+    if (!formData.interview_time) {
+      toast({ title: 'Error', description: 'Interview time is required', variant: 'destructive' })
+      return
+    }
+
+    console.log('Saving interview with data:', formData)
 
     try {
       if (editingInterview) {
@@ -250,7 +273,7 @@ function InterviewsPage() {
             candidate_name: formData.candidate_name,
             phone: formData.phone || null,
             email: formData.email || null,
-            position: formData.position || '',
+            position: formData.position || null,
             interview_date: formData.interview_date,
             interview_time: formData.interview_time,
             status: formData.status,
@@ -262,9 +285,14 @@ function InterviewsPage() {
 
         if (error) throw error
 
-        // Update calendar event for the modified interview
+        // Update calendar event for the modified interview (don't block on failure)
         if (updatedInterview) {
-          await createOrUpdateCalendarEvent(updatedInterview, true)
+          try {
+            await createOrUpdateCalendarEvent(updatedInterview, true)
+          } catch (calendarError) {
+            console.warn('Calendar event update failed, but interview was saved:', calendarError)
+            // Don't show error toast here since interview was successfully saved
+          }
         }
 
         toast({ title: 'Success!', description: 'Interview updated and calendar synced!' })
@@ -288,9 +316,14 @@ function InterviewsPage() {
 
         if (error) throw error
 
-        // Create calendar event for the new interview
+        // Create calendar event for the new interview (don't block on failure)
         if (newInterview) {
-          await createOrUpdateCalendarEvent(newInterview, false)
+          try {
+            await createOrUpdateCalendarEvent(newInterview, false)
+          } catch (calendarError) {
+            console.warn('Calendar event creation failed, but interview was saved:', calendarError)
+            // Don't show error toast here since interview was successfully saved
+          }
         }
 
         toast({ title: 'Success!', description: 'Interview scheduled and added to calendar!' })
@@ -302,10 +335,22 @@ function InterviewsPage() {
       resetForm()
     } catch (error: any) {
       console.error('Error saving interview:', error)
-      toast({ 
-        title: 'Error', 
-        description: error.message || 'Failed to save interview', 
-        variant: 'destructive' 
+      console.error('Error details:', error.details)
+      console.error('Error hint:', error.hint)
+
+      let errorMessage = 'Failed to save interview'
+      if (error.message) {
+        errorMessage = error.message
+      } else if (error.details) {
+        errorMessage = `Database error: ${error.details}`
+      } else if (error.hint) {
+        errorMessage = `Hint: ${error.hint}`
+      }
+
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
       })
     }
   }
