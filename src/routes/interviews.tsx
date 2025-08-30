@@ -174,15 +174,21 @@ function InterviewsPage() {
         return
       }
 
+      // Format time to include seconds for proper ISO datetime
+      const formattedTimeForCalendar = interview.interview_time.includes(':') && interview.interview_time.split(':').length === 2
+        ? `${interview.interview_time}:00`
+        : interview.interview_time
+
       // Combine date and time for start_date (ensure proper format)
-      const startDateTime = `${interview.interview_date}T${interview.interview_time}:00`
+      const startDateTime = `${interview.interview_date}T${formattedTimeForCalendar}`
 
       // Create start date and validate it's valid
       const startDate = new Date(startDateTime)
       if (isNaN(startDate.getTime())) {
         console.error('Invalid start date created:', startDateTime, 'from:', {
           date: interview.interview_date,
-          time: interview.interview_time
+          time: interview.interview_time,
+          formattedTime: formattedTimeForCalendar
         })
         throw new Error('Invalid interview date/time format')
       }
@@ -291,6 +297,13 @@ function InterviewsPage() {
     console.log('Interview date format:', typeof formData.interview_date, formData.interview_date)
     console.log('Interview time format:', typeof formData.interview_time, formData.interview_time)
 
+    // Format time to include seconds for PostgreSQL compatibility
+    const formattedTime = formData.interview_time.includes(':') && formData.interview_time.split(':').length === 2
+      ? `${formData.interview_time}:00`
+      : formData.interview_time
+
+    console.log('Formatted time for database:', formattedTime)
+
     try {
       if (editingInterview) {
         // Update existing interview
@@ -302,7 +315,7 @@ function InterviewsPage() {
             email: formData.email || null,
             position: formData.position || null,
             interview_date: formData.interview_date,
-            interview_time: formData.interview_time,
+            interview_time: formattedTime,
             status: formData.status,
             notes: formData.notes || null
           })
@@ -334,7 +347,7 @@ function InterviewsPage() {
             email: formData.email || null,
             position: formData.position || null,
             interview_date: formData.interview_date,
-            interview_time: formData.interview_time,
+            interview_time: formattedTime,
             status: formData.status,
             notes: formData.notes || null
           }])
