@@ -4,16 +4,19 @@
 -- Step 1: Check what data exists first
 -- SELECT * FROM interviews LIMIT 5;
 
--- Step 2: Create a backup of existing data
+-- Step 2: Drop the foreign key constraint temporarily
+ALTER TABLE hires DROP CONSTRAINT IF EXISTS hires_interview_id_fkey;
+
+-- Step 3: Create a backup of existing data
 CREATE TABLE interviews_backup AS SELECT * FROM interviews;
 
--- Step 3: Drop the table (this also drops the enum)
+-- Step 4: Drop the table (this also drops the enum)
 DROP TABLE interviews;
 
--- Step 4: Recreate the enum with correct values
+-- Step 5: Recreate the enum with correct values
 CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED','REJECTED');
 
--- Step 5: Recreate the table
+-- Step 6: Recreate the table
 CREATE TABLE interviews (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id uuid NOT NULL REFERENCES stores(id),
@@ -28,16 +31,20 @@ CREATE TABLE interviews (
   created_at timestamptz DEFAULT now()
 );
 
--- Step 6: Restore data from backup (if you want to keep existing data)
--- INSERT INTO interviews (store_id, candidate_name, phone, email, position, interview_date, interview_time, status, notes, created_at)
--- SELECT store_id, candidate_name, phone, email, position, interview_date, interview_time,
---        CASE
---          WHEN status::text IN ('SCHEDULED', 'COMPLETED', 'NO_SHOW', 'HIRED', 'REJECTED')
---          THEN status::text::interview_status
---          ELSE 'SCHEDULED'::interview_status
---        END as status,
---        notes, created_at
--- FROM interviews_backup;
+-- Step 7: Restore data from backup (if you want to keep existing data)
+INSERT INTO interviews (store_id, candidate_name, phone, email, position, interview_date, interview_time, status, notes, created_at)
+SELECT store_id, candidate_name, phone, email, position, interview_date, interview_time,
+       CASE
+         WHEN status::text IN ('SCHEDULED', 'COMPLETED', 'NO_SHOW', 'HIRED', 'REJECTED')
+         THEN status::text::interview_status
+         ELSE 'SCHEDULED'::interview_status
+       END as status,
+       notes, created_at
+FROM interviews_backup;
 
--- Step 7: Drop the backup table
--- DROP TABLE interviews_backup;
+-- Step 8: Recreate the foreign key constraint
+ALTER TABLE hires ADD CONSTRAINT hires_interview_id_fkey
+  FOREIGN KEY (interview_id) REFERENCES interviews(id) ON DELETE CASCADE;
+
+-- Step 9: Drop the backup table
+DROP TABLE interviews_backup;
