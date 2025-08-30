@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isToday, isSameMonth } from 'date-fns'
-import { Plus, Edit, Trash2, Bell, Calendar as CalendarIcon, Clock, MapPin, CheckCircle, Circle, Star, MoreHorizontal } from 'lucide-react'
+import { Plus, Edit, Trash2, Bell, Calendar as CalendarIcon, Clock, MapPin, CheckCircle, Circle, Star } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -560,22 +560,22 @@ function CalendarPage() {
                 {monthDays.map((day, index) => {
                   const dayEvents = getEventsForDate(day)
                   const dayReminders = getRemindersForDate(day)
-                  const isToday = isToday(day)
+                  const todayCheck = isToday(day)
                   const isSelected = isSameDay(day, selectedDate)
                   const isCurrentMonth = isSameMonth(day, selectedDate)
-                  
+
                   return (
                     <div
                       key={index}
                       className={`min-h-[100px] p-2 border border-gray-200 cursor-pointer transition-all duration-200 rounded-lg ${
                         !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white hover:bg-gray-50'
                       } ${
-                        isToday ? 'bg-gradient-to-br from-wendys-red/20 to-wendys-dark-red/20 border-wendys-red/30 shadow-md' : ''
+                        todayCheck ? 'bg-gradient-to-br from-wendys-red/20 to-wendys-dark-red/20 border-wendys-red/30 shadow-md' : ''
                       } ${isSelected ? 'bg-blue-50 border-blue-300 shadow-md' : ''}`}
                       onClick={() => setSelectedDate(day)}
                     >
                       <div className={`text-sm font-semibold mb-2 ${
-                        isToday ? 'text-wendys-red' : isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+                        todayCheck ? 'text-wendys-red' : isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
                       }`}>
                         {format(day, 'd')}
                       </div>
