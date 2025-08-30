@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { formatDate, formatTime, getStatusColor } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { useQueryClient } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/interviews')({
   component: InterviewsPage,
@@ -51,6 +52,7 @@ function InterviewsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   // Form state
   const [formData, setFormData] = useState<InterviewFormData>({
@@ -289,6 +291,8 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
           throw error
         } else {
           console.log('Calendar event deleted successfully for interview:', interviewId)
+          // Invalidate calendar events query to refresh the calendar UI
+          queryClient.invalidateQueries({ queryKey: ['calendar-events', userId] })
         }
       } else {
         console.log('No calendar event found to delete for interview:', interviewId)
@@ -378,6 +382,8 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             console.error('Error updating calendar event:', error)
           } else {
             console.log('Calendar event updated successfully for interview:', interview.id)
+            // Invalidate calendar events query to refresh the calendar UI
+            queryClient.invalidateQueries({ queryKey: ['calendar-events', userId] })
           }
         } else {
           // Create new calendar event if none exists
@@ -389,6 +395,8 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             console.error('Error creating calendar event:', error)
           } else {
             console.log('Calendar event created successfully for interview:', interview.id)
+            // Invalidate calendar events query to refresh the calendar UI
+            queryClient.invalidateQueries({ queryKey: ['calendar-events', userId] })
           }
         }
       } else {
@@ -406,6 +414,8 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
           })
         } else {
           console.log('Calendar event created successfully for interview:', interview.id)
+          // Invalidate calendar events query to refresh the calendar UI
+          queryClient.invalidateQueries({ queryKey: ['calendar-events', userId] })
         }
       }
     } catch (error) {
