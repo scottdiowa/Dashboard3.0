@@ -266,7 +266,40 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
   }
 
-  // Create or update calendar event for interview
+  // Delete calendar event for interview
+  const deleteCalendarEvent = async (interviewId: string) => {
+    if (!userId) {
+      console.warn('No user ID available for calendar event deletion')
+      return
+    }
+
+    try {
+      // Find existing calendar event
+      const existingEvent = await findCalendarEvent(interviewId)
+
+      if (existingEvent) {
+        // Delete the calendar event
+        const { error } = await supabase
+          .from('calendar_events')
+          .delete()
+          .eq('id', existingEvent.id)
+
+        if (error) {
+          console.error('Error deleting calendar event:', error)
+          throw error
+        } else {
+          console.log('Calendar event deleted successfully for interview:', interviewId)
+        }
+      } else {
+        console.log('No calendar event found to delete for interview:', interviewId)
+      }
+    } catch (error) {
+      console.error('Error in deleteCalendarEvent:', error)
+      throw error
+    }
+  }
+
+  // Create or update calendar event for interview (only for SCHEDULED status)
   const createOrUpdateCalendarEvent = async (interview: Interview, isUpdate: boolean = false) => {
     if (!userId) {
       console.warn('No user ID available for calendar event creation')
@@ -274,6 +307,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
 
     try {
+      // Only create/update calendar events for SCHEDULED interviews
+      if (interview.status !== 'SCHEDULED') {
+        console.log('Interview status is not SCHEDULED, removing calendar event if it exists')
+        // Delete existing calendar event if status is not SCHEDULED
+        await deleteCalendarEvent(interview.id)
+        return
+      }
+
       // Validate date and time inputs
       if (!interview.interview_date || !interview.interview_time) {
         console.warn('Invalid date or time for calendar event:', {
@@ -449,7 +490,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
           }
         }
 
-        toast({ title: 'Success!', description: 'Interview updated and calendar synced!' })
+        toast({ title: 'Success!', description: formData.status === 'SCHEDULED' ? 'Interview updated and calendar synced!' : 'Interview updated and removed from calendar!' })
       } else {
         // Create new interview
         const { data: newInterview, error } = await supabase
@@ -480,7 +521,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
           }
         }
 
-        toast({ title: 'Success!', description: 'Interview scheduled and added to calendar!' })
+        toast({ title: 'Success!', description: formData.status === 'SCHEDULED' ? 'Interview scheduled and added to calendar!' : 'Interview saved successfully!' })
       }
 
       // Refresh data and close form
@@ -535,6 +576,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     if (!confirm('Are you sure you want to delete this interview?')) return
 
     try {
+      // Delete the calendar event first (don't block on failure)
+      try {
+        await deleteCalendarEvent(id)
+      } catch (calendarError) {
+        console.warn('Calendar event deletion failed, but continuing with interview deletion:', calendarError)
+      }
+
+      // Delete the interview from database
       const { error } = await supabase
         .from('interviews')
         .delete()
@@ -542,7 +591,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
 
       if (error) throw error
       
-      toast({ title: 'Deleted!', description: 'Interview removed successfully.' })
+      toast({ title: 'Deleted!', description: 'Interview and calendar event removed successfully.' })
       fetchInterviews(storeId!)
     } catch (error: any) {
       console.error('Error deleting interview:', error)
