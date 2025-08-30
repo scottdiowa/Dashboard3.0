@@ -173,15 +173,39 @@ function WeekendingSheetPage() {
   })
 
   const onSubmit = (data: WeekendingSheetFormData) => {
+    // Preprocess data to ensure numeric fields are properly handled
+    const processedData = {
+      ...data,
+      breakfast_sales: Number(data.breakfast_sales) || 0,
+      late_night_sales: Number(data.late_night_sales) || 0,
+      net_sales: Number(data.net_sales) || 0,
+      discounts: Number(data.discounts) || 0,
+      cash: Number(data.cash) || 0,
+      food_total: Number(data.food_total) || 0,
+      food_cost: Number(data.food_cost) || 0,
+      variance_dollars: Number(data.variance_dollars) || 0,
+      food_variance_percentage: Number(data.food_variance_percentage) || 0,
+      labor: Number(data.labor) || 0,
+      credit_hours: Number(data.credit_hours) || 0,
+      crew_food_safety_quiz: Number(data.crew_food_safety_quiz) || 0,
+      mgr_food_safety_quiz: Number(data.mgr_food_safety_quiz) || 0,
+    }
+
     if (editingEntry) {
-      updateMutation.mutate({ id: editingEntry.id, payload: data })
+      updateMutation.mutate({ id: editingEntry.id, payload: processedData })
     } else {
-      insertMutation.mutate(data)
+      insertMutation.mutate(processedData)
     }
   }
 
   const onInvalidSubmit = (errors: any) => {
     console.error('Form validation failed:', errors)
+    
+    // Log specific field errors for debugging
+    if (errors.discounts) console.error('Discounts error:', errors.discounts)
+    if (errors.cash) console.error('Cash error:', errors.cash)
+    if (errors.food_cost) console.error('Food cost error:', errors.food_cost)
+    
     toast({
       title: 'Validation Error',
       description: 'Please check the form for errors and try again.',
@@ -674,7 +698,7 @@ function WeekendingSheetPage() {
 
                   {/* Discounts */}
                   <div className="space-y-2">
-                    <Label htmlFor="discounts">Discounts ($)</Label>
+                    <Label htmlFor="discounts">Discounts ($) - Can be negative</Label>
                     <Input
                       id="discounts"
                       type="number"
@@ -689,7 +713,7 @@ function WeekendingSheetPage() {
 
                   {/* Cash */}
                   <div className="space-y-2">
-                    <Label htmlFor="cash">Cash ($)</Label>
+                    <Label htmlFor="cash">Cash ($) - Can be negative</Label>
                     <Input
                       id="cash"
                       type="number"
@@ -704,7 +728,7 @@ function WeekendingSheetPage() {
 
                   {/* Food Total */}
                   <div className="space-y-2">
-                    <Label htmlFor="food_total">Food Total ($)</Label>
+                    <Label htmlFor="food_total">Food Total ($) - Can be negative</Label>
                     <Input
                       id="food_total"
                       type="number"
@@ -719,7 +743,7 @@ function WeekendingSheetPage() {
 
                   {/* Food Cost */}
                   <div className="space-y-2">
-                    <Label htmlFor="food_cost">Food Cost ($)</Label>
+                    <Label htmlFor="food_cost">Food Cost ($) - Can be negative</Label>
                     <Input
                       id="food_cost"
                       type="number"
