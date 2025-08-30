@@ -165,12 +165,35 @@ function InterviewsPage() {
     }
 
     try {
-      // Combine date and time for start_date
+      // Validate date and time inputs
+      if (!interview.interview_date || !interview.interview_time) {
+        console.warn('Invalid date or time for calendar event:', {
+          date: interview.interview_date,
+          time: interview.interview_time
+        })
+        return
+      }
+
+      // Combine date and time for start_date (ensure proper format)
       const startDateTime = `${interview.interview_date}T${interview.interview_time}:00`
 
-      // Calculate end time (assume 1 hour duration)
+      // Create start date and validate it's valid
       const startDate = new Date(startDateTime)
+      if (isNaN(startDate.getTime())) {
+        console.error('Invalid start date created:', startDateTime, 'from:', {
+          date: interview.interview_date,
+          time: interview.interview_time
+        })
+        throw new Error('Invalid interview date/time format')
+      }
+
+      // Calculate end time (assume 1 hour duration)
       const endDate = new Date(startDate.getTime() + 60 * 60 * 1000) // Add 1 hour
+      if (isNaN(endDate.getTime())) {
+        console.error('Invalid end date calculated from start date:', startDate)
+        throw new Error('Invalid end date calculation')
+      }
+
       const endDateTime = endDate.toISOString()
 
       const eventData = {
@@ -231,6 +254,8 @@ function InterviewsPage() {
       }
     } catch (error) {
       console.error('Error in createOrUpdateCalendarEvent:', error)
+      // Re-throw the error so it can be caught by the calling function
+      throw error
     }
   }
 
@@ -263,6 +288,8 @@ function InterviewsPage() {
     }
 
     console.log('Saving interview with data:', formData)
+    console.log('Interview date format:', typeof formData.interview_date, formData.interview_date)
+    console.log('Interview time format:', typeof formData.interview_time, formData.interview_time)
 
     try {
       if (editingInterview) {
