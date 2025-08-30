@@ -43,6 +43,7 @@ interface InterviewFormData {
 
 function InterviewsPage() {
   const [storeId, setStoreId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [interviews, setInterviews] = useState<Interview[]>([])
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false)
   const [editingInterview, setEditingInterview] = useState<Interview | null>(null)
@@ -63,12 +64,14 @@ function InterviewsPage() {
     notes: ''
   })
 
-  // Get user's store ID
+  // Get user's store ID and user ID
   useEffect(() => {
     const getStoreId = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
+
+        setUserId(user.id)
 
         const { data } = await supabase
           .from('users')
@@ -129,6 +132,108 @@ function InterviewsPage() {
     setEditingInterview(null)
   }
 
+  // Find existing calendar event for interview
+  const findCalendarEvent = async (interviewId: string) => {
+    if (!userId) return null
+
+    try {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('id')
+        .eq('created_by', userId)
+        .ilike('title', `Interview: %`)
+        .ilike('description', `%interviewId: ${interviewId}%`)
+        .single()
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('Error finding calendar event:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in findCalendarEvent:', error)
+      return null
+    }
+  }
+
+  // Create or update calendar event for interview
+  const createOrUpdateCalendarEvent = async (interview: Interview, isUpdate: boolean = false) => {
+    if (!userId) {
+      console.warn('No user ID available for calendar event creation')
+      return
+    }
+
+    try {
+      // Combine date and time for start_date
+      const startDateTime = `${interview.interview_date}T${interview.interview_time}:00`
+
+      // Calculate end time (assume 1 hour duration)
+      const startDate = new Date(startDateTime)
+      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000) // Add 1 hour
+      const endDateTime = endDate.toISOString()
+
+      const eventData = {
+        title: `Interview: ${interview.candidate_name}`,
+        description: `Interview for ${interview.position || 'position'}\n${interview.notes || ''}\nPhone: ${interview.phone || 'N/A'}\nEmail: ${interview.email || 'N/A'}\ninterviewId: ${interview.id}`,
+        start_date: startDateTime,
+        end_date: endDateTime,
+        all_day: false,
+        location: 'Store Interview Room',
+        reminder_type: '15min',
+        updated_at: new Date().toISOString()
+      }
+
+      if (isUpdate) {
+        // Find existing calendar event
+        const existingEvent = await findCalendarEvent(interview.id)
+
+        if (existingEvent) {
+          // Update existing calendar event
+          const { error } = await supabase
+            .from('calendar_events')
+            .update(eventData)
+            .eq('id', existingEvent.id)
+
+          if (error) {
+            console.error('Error updating calendar event:', error)
+          } else {
+            console.log('Calendar event updated successfully for interview:', interview.id)
+          }
+        } else {
+          // Create new calendar event if none exists
+          const { error } = await supabase
+            .from('calendar_events')
+            .insert([{ ...eventData, created_by: userId }])
+
+          if (error) {
+            console.error('Error creating calendar event:', error)
+          } else {
+            console.log('Calendar event created successfully for interview:', interview.id)
+          }
+        }
+      } else {
+        // Create new calendar event
+        const { error } = await supabase
+          .from('calendar_events')
+          .insert([{ ...eventData, created_by: userId }])
+
+        if (error) {
+          console.error('Error creating calendar event:', error)
+          toast({
+            title: 'Warning',
+            description: 'Interview scheduled but calendar event creation failed.',
+            variant: 'destructive'
+          })
+        } else {
+          console.log('Calendar event created successfully for interview:', interview.id)
+        }
+      }
+    } catch (error) {
+      console.error('Error in createOrUpdateCalendarEvent:', error)
+    }
+  }
+
   // Save interview (create or update)
   const saveInterview = async () => {
     if (!storeId) {
@@ -139,7 +244,7 @@ function InterviewsPage() {
     try {
       if (editingInterview) {
         // Update existing interview
-        const { error } = await supabase
+        const { data: updatedInterview, error } = await supabase
           .from('interviews')
           .update({
             candidate_name: formData.candidate_name,
@@ -152,12 +257,20 @@ function InterviewsPage() {
             notes: formData.notes || null
           })
           .eq('id', editingInterview.id)
+          .select()
+          .single()
 
         if (error) throw error
-        toast({ title: 'Success!', description: 'Interview updated successfully.' })
+
+        // Update calendar event for the modified interview
+        if (updatedInterview) {
+          await createOrUpdateCalendarEvent(updatedInterview, true)
+        }
+
+        toast({ title: 'Success!', description: 'Interview updated and calendar synced!' })
       } else {
         // Create new interview
-        const { error } = await supabase
+        const { data: newInterview, error } = await supabase
           .from('interviews')
           .insert([{
             store_id: storeId,
@@ -170,9 +283,17 @@ function InterviewsPage() {
             status: formData.status,
             notes: formData.notes || null
           }])
+          .select()
+          .single()
 
         if (error) throw error
-        toast({ title: 'Success!', description: 'Interview scheduled successfully.' })
+
+        // Create calendar event for the new interview
+        if (newInterview) {
+          await createOrUpdateCalendarEvent(newInterview, false)
+        }
+
+        toast({ title: 'Success!', description: 'Interview scheduled and added to calendar!' })
       }
 
       // Refresh data and close form
