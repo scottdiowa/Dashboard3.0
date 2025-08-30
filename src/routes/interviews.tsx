@@ -158,7 +158,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         console.log('Could not get enum values via RPC, trying direct query...')
         
         // Try to insert test records with different status values
-        const testStatuses = ['SCHEDULED', 'COMPLETED', 'NO_SHOW', 'HIRED', 'REJECTED', 'DONE']
+        const testStatuses = ['SCHEDULED', 'COMPLETED', 'NO_SHOW', 'HIRED', 'REJECTED']
         
         for (const status of testStatuses) {
           try {
