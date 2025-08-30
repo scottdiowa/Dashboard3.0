@@ -758,7 +758,7 @@ function WeekendingSheetPage() {
 
                   {/* Variance Dollars */}
                   <div className="space-y-2">
-                    <Label htmlFor="variance_dollars">Variance Dollars ($)</Label>
+                    <Label htmlFor="variance_dollars">Variance Dollars ($) - Can be negative</Label>
                     <Input
                       id="variance_dollars"
                       type="number"
@@ -773,7 +773,7 @@ function WeekendingSheetPage() {
 
                   {/* Food Variance Percentage */}
                   <div className="space-y-2">
-                    <Label htmlFor="food_variance_percentage">Food Variance %</Label>
+                    <Label htmlFor="food_variance_percentage">Food Variance % - Can be negative</Label>
                     <Input
                       id="food_variance_percentage"
                       type="number"
