@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, MessageSquare } from 'lucide-react'
+import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, MessageSquare, FileText } from 'lucide-react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useState, useMemo, forwardRef } from 'react'
@@ -25,6 +25,14 @@ const navigationItems = [
     href: '/omega-daily',
     icon: TrendingUp,
     description: 'Daily business metrics',
+    category: 'main',
+    priority: 'high'
+  },
+  {
+    name: 'Weekending Sheet',
+    href: '/weekending-sheet',
+    icon: FileText,
+    description: 'Weekly operational data',
     category: 'main',
     priority: 'high'
   },

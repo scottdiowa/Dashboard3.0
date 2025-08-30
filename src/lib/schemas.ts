@@ -80,3 +80,32 @@ export const loginSchema = z.object({
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>
+
+// Weekending Sheet Schema
+export const weekendingSheetSchema = z.object({
+  week_ending_date: z.string().min(1, "Week ending date is required"),
+  manager_name: z.enum(['Scott', 'Sophear', 'Letoya', 'Carissa'], {
+    required_error: "Please select a manager"
+  }),
+  breakfast_sales: z.coerce.number().min(0, "Breakfast sales must be positive"),
+  late_night_sales: z.coerce.number().min(0, "Late night sales must be positive"),
+  net_sales: z.coerce.number().min(0, "Net sales must be positive"),
+  discounts: z.coerce.number().min(0, "Discounts must be positive"),
+  cash: z.coerce.number().min(0, "Cash must be positive"),
+  food_total: z.coerce.number().min(0, "Food total must be positive"),
+  food_cost: z.coerce.number().min(0, "Food cost must be positive"),
+  variance_dollars: z.coerce.number(),
+  food_variance_percentage: z.coerce.number(),
+  labor: z.coerce.number().min(0, "Labor must be positive"),
+  credit_hours: z.coerce.number().min(0, "Credit hours must be positive"),
+  reason: z.string().optional(),
+  // WeLearn section
+  onboarding: z.boolean().default(false),
+  crew_food_safety_quiz: z.coerce.number().min(0).max(100, "Score must be between 0-100"),
+  mgr_food_safety_quiz: z.coerce.number().min(0).max(100, "Score must be between 0-100"),
+  new_hire_name: z.string().optional(),
+  terminations: z.string().optional(),
+  term_date: z.string().optional(),
+})
+
+export type WeekendingSheetFormData = z.infer<typeof weekendingSheetSchema>
