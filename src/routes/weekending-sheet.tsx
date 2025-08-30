@@ -98,9 +98,20 @@ function WeekendingSheetPage() {
         ...payload,
       }
       
+      // Add detailed logging
+      console.log('Attempting to insert data:', insertData)
+      console.log('Store ID:', storeId)
+      console.log('Payload:', payload)
+      
       const { data, error } = await supabase.from('weekending_sheet').insert(insertData).select()
       
-      if (error) throw error
+      if (error) {
+        console.error('Supabase insert error:', error)
+        console.error('Error details:', error.details)
+        console.error('Error hint:', error.hint)
+        console.error('Error message:', error.message)
+        throw error
+      }
       return data
     },
     onSuccess: () => {
@@ -221,11 +232,16 @@ function WeekendingSheetPage() {
       const userId = auth.user?.id
       if (!userId) return
 
+      console.log('Resolving store_id for user:', userId)
+
       const { data } = await supabase
         .from('users')
         .select('store_id')
         .eq('id', userId)
         .maybeSingle()
+
+      console.log('User data from database:', data)
+      console.log('Store ID resolved:', data?.store_id)
 
       if (!active) return
       setStoreId(data?.store_id ?? null)
