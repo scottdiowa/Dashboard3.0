@@ -123,4 +123,128 @@
   .sidebar-search:focus-within {
     @apply ring-2 ring-wendys-red/20 border-wendys-red;
   }
+
+  .button-hover-effect {
+    @apply transform hover:scale-105 transition-all duration-200 hover:shadow-lg;
+  }
+  
+  /* Enhanced Calendar Styles */
+  .calendar-day {
+    @apply transition-all duration-200 ease-out hover:transform hover:scale-105;
+  }
+  
+  .calendar-day:hover {
+    @apply shadow-lg;
+  }
+  
+  .event-indicator {
+    @apply transition-all duration-200 ease-out hover:transform hover:scale-105;
+  }
+  
+  .reminder-indicator {
+    @apply transition-all duration-200 ease-out hover:transform hover:scale-105;
+  }
+  
+  .calendar-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  }
+  
+  .event-card {
+    @apply transition-all duration-300 ease-out hover:transform hover:scale-[1.02] hover:shadow-xl;
+  }
+  
+  .reminder-card {
+    @apply transition-all duration-300 ease-out hover:transform hover:scale-[1.02] hover:shadow-xl;
+  }
+  
+  .priority-high {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 1px solid #fecaca;
+  }
+  
+  .priority-medium {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 1px solid #fed7aa;
+  }
+  
+  .priority-low {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1px solid #bbf7d0;
+  }
+  
+  .event-blue {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #bfdbfe;
+  }
+  
+  .modal-backdrop {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  .form-input-focus {
+    @apply focus:ring-2 focus:ring-wendys-red/20 focus:border-wendys-red transition-all duration-200;
+  }
+  
+  /* Additional Calendar Enhancements */
+  .calendar-grid {
+    @apply bg-gradient-to-br from-white via-gray-50 to-white;
+  }
+  
+  .calendar-day-number {
+    @apply font-bold text-lg transition-all duration-200;
+  }
+  
+  .calendar-day-number:hover {
+    @apply text-wendys-red transform scale-110;
+  }
+  
+  .event-dot {
+    @apply w-2 h-2 rounded-full mx-auto mb-1 transition-all duration-200;
+  }
+  
+  .event-dot:hover {
+    @apply transform scale-150;
+  }
+  
+  .reminder-dot {
+    @apply w-2 h-2 rounded-full mx-auto mb-1 transition-all duration-200;
+  }
+  
+  .reminder-dot:hover {
+    @apply transform scale-150;
+  }
+  
+  .calendar-nav-button {
+    @apply transition-all duration-200 hover:bg-wendys-red/10 hover:text-wendys-red rounded-lg;
+  }
+  
+  .calendar-month-title {
+    @apply bg-gradient-to-r from-wendys-charcoal to-gray-700 bg-clip-text text-transparent;
+  }
+  
+  .today-highlight {
+    background: linear-gradient(135deg, rgba(226, 35, 26, 0.1) 0%, rgba(183, 28, 19, 0.1) 100%);
+    border: 2px solid rgba(226, 35, 26, 0.3);
+    box-shadow: 0 4px 12px rgba(226, 35, 26, 0.15);
+  }
+  
+  .selected-date-highlight {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+    border: 2px solid rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  }
+  
+  .form-section {
+    @apply space-y-4 p-6 bg-gray-50 rounded-xl border border-gray-200;
+  }
+  
+  .form-section-title {
+    @apply text-lg font-semibold text-wendys-charcoal mb-4 flex items-center;
+  }
+  
+  .form-section-title::before {
+    content: '';
+    @apply w-1 h-6 bg-wendys-red rounded-full mr-3;
+  }
 }

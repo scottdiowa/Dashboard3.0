@@ -1,0 +1,3 @@
+[33m71df2337[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Fix dashboard charts: comp sales now show percentages, food variance chart direction corrected
+[33m45301ce2[m[33m ([m[1;31morigin/master[m[33m)[m Fix enum mismatch - use COMPLETED instead of DONE to match actual database enum values
+[33m72c021f2[m Fix null position constraint error - ensure position field always has a value
