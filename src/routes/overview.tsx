@@ -285,6 +285,21 @@ function OverviewPage() {
         />
       </div>
 
+      {/* Google Drive Banner - Looping */}
+      <div className="wendys-card">
+        <div className="flex justify-center">
+          <iframe 
+            src="https://drive.google.com/file/d/1Jmx05oXTj4LZ1tEXLQC2j20yreKXnlNy/preview?autoplay=1&loop=1&playlist=1Jmx05oXTj4LZ1tEXLQC2j20yreKXnlNy" 
+            width="100%" 
+            height="480" 
+            allow="autoplay; encrypted-media"
+            className="max-w-4xl rounded-lg shadow-lg"
+            title="Dashboard Banner"
+            frameBorder="0"
+          />
+        </div>
+      </div>
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <OverviewKpiCard
