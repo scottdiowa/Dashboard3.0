@@ -288,19 +288,6 @@ function OverviewPage() {
       {/* Video Banner */}
       <div className="wendys-card">
         <div className="flex justify-center">
-          {/* Option 1: YouTube Embed (replace VIDEO_ID with your actual video ID) */}
-          <iframe 
-            src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1&loop=1&playlist=VIDEO_ID&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1"
-            width="100%" 
-            height="480" 
-            allow="autoplay; encrypted-media"
-            className="max-w-4xl rounded-lg shadow-lg"
-            title="Dashboard Banner Video"
-            frameBorder="0"
-          />
-          
-          {/* Option 2: Local Video File (uncomment and use this instead) */}
-          {/* 
           <video 
             autoPlay 
             loop 
@@ -309,16 +296,17 @@ function OverviewPage() {
             className="max-w-4xl rounded-lg shadow-lg"
             style={{ maxHeight: '480px', width: '100%' }}
           >
-            <source src="/banner-video.mp4" type="video/mp4" />
-            <source src="/banner-video.webm" type="video/webm" />
-            Your browser does not support the video tag.
+            <source src="/dashboard-8_30_2025, 8_58 PM.mp4" type="video/mp4" />
+            <div className="bg-gradient-to-r from-wendys-red to-red-600 text-white p-8 rounded-lg text-center">
+              <h2 className="text-3xl font-bold mb-4">Wendy's GM Dashboard</h2>
+              <p className="text-xl opacity-90">Comprehensive restaurant management and performance tracking</p>
+            </div>
           </video>
-          */}
         </div>
         <div className="text-center mt-4 text-sm text-gray-600">
-          <p>🎥 <strong>To use your video:</strong></p>
-          <p>1. <strong>YouTube:</strong> Replace VIDEO_ID above with your video ID</p>
-          <p>2. <strong>Local file:</strong> Upload video to /public/ folder and uncomment the video tag above</p>
+          <p>🎥 <strong>Video Banner Active</strong></p>
+          <p>Currently using: <code>dashboard-8_30_2025, 8_58 PM.mp4</code></p>
+          <p>To change the video, replace this file in the <code>/public/</code> folder</p>
         </div>
       </div>
 
