@@ -293,21 +293,15 @@ function OverviewPage() {
             loop 
             muted 
             playsInline
+            controls
             className="max-w-4xl rounded-lg shadow-lg"
             style={{ maxHeight: '480px', width: '100%' }}
           >
             <source src="/dashboard-8_30_2025, 8_58 PM.mp4" type="video/mp4" />
-            <div className="bg-gradient-to-r from-wendys-red to-red-600 text-white p-8 rounded-lg text-center">
-              <h2 className="text-3xl font-bold mb-4">Wendy's GM Dashboard</h2>
-              <p className="text-xl opacity-90">Comprehensive restaurant management and performance tracking</p>
-            </div>
+            <p>Your browser does not support the video tag.</p>
           </video>
         </div>
-        <div className="text-center mt-4 text-sm text-gray-600">
-          <p>🎥 <strong>Video Banner Active</strong></p>
-          <p>Currently using: <code>dashboard-8_30_2025, 8_58 PM.mp4</code></p>
-          <p>To change the video, replace this file in the <code>/public/</code> folder</p>
-        </div>
+
       </div>
 
       {/* KPI Cards Grid */}
