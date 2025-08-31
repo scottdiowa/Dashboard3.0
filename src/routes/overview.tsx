@@ -285,18 +285,33 @@ function OverviewPage() {
         />
       </div>
 
-      {/* Google Drive Banner - Looping */}
-      <div className="wendys-card">
-        <div className="flex justify-center">
-          <iframe 
-            src="https://drive.google.com/file/d/1Jmx05oXTj4LZ1tEXLQC2j20yreKXnlNy/preview?autoplay=1&loop=1&playlist=1Jmx05oXTj4LZ1tEXLQC2j20yreKXnlNy" 
-            width="100%" 
-            height="480" 
-            allow="autoplay; encrypted-media"
-            className="max-w-4xl rounded-lg shadow-lg"
-            title="Dashboard Banner"
-            frameBorder="0"
-          />
+      {/* Dashboard Banner */}
+      <div className="wendys-card bg-gradient-to-r from-wendys-red to-red-600 text-white">
+        <div className="flex justify-center items-center py-8">
+          <div className="text-center max-w-4xl">
+            <h2 className="text-3xl font-bold mb-4">Wendy's GM Dashboard</h2>
+            <p className="text-xl opacity-90 mb-6">
+              Comprehensive restaurant management and performance tracking
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="bg-white/20 rounded-lg p-3">
+                <div className="text-2xl font-bold">📊</div>
+                <div className="text-sm">Analytics</div>
+              </div>
+              <div className="bg-white/20 rounded-lg p-3">
+                <div className="text-2xl font-bold">📈</div>
+                <div className="text-sm">Performance</div>
+              </div>
+              <div className="bg-white/20 rounded-lg p-3">
+                <div className="text-2xl font-bold">🎯</div>
+                <div className="text-sm">Goals</div>
+              </div>
+              <div className="bg-white/20 rounded-lg p-3">
+                <div className="text-2xl font-bold">📅</div>
+                <div className="text-sm">Planning</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
