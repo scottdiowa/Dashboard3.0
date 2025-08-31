@@ -297,7 +297,7 @@ function OverviewPage() {
             className="max-w-4xl rounded-lg shadow-lg"
             style={{ maxHeight: '480px', width: '100%' }}
           >
-            <source src="/dashboard-8_30_2025, 8_58 PM.mp4" type="video/mp4" />
+            <source src="/banner-video.mp4" type="video/mp4" />
             <p>Your browser does not support the video tag.</p>
           </video>
         </div>
