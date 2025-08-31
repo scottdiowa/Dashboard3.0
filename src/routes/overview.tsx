@@ -531,13 +531,13 @@ function OverviewPage() {
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
                   <p className="text-lg font-medium text-wendys-charcoal">
-                    {weekendingAggregatedData.avgCrewQuiz.toFixed(1)}%
+                    {(weekendingAggregatedData.avgCrewQuiz ?? 0).toFixed(1)}%
                   </p>
                   <p className="text-sm text-gray-600">Avg Crew Quiz</p>
                 </div>
                 <div>
                   <p className="text-lg font-medium text-wendys-charcoal">
-                    {weekendingAggregatedData.avgMgrQuiz.toFixed(1)}%
+                    {(weekendingAggregatedData.avgMgrQuiz ?? 0).toFixed(1)}%
                   </p>
                   <p className="text-sm text-gray-600">Avg MGR Quiz</p>
                 </div>

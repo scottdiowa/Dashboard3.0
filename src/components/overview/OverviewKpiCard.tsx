@@ -5,12 +5,12 @@ import { chartColors } from '@/lib/chart-utils'
 
 interface OverviewKpiCardProps {
   title: string
-  value: number
+  value: number | undefined | null
   format: 'currency' | 'percentage' | 'number'
-  delta?: number
+  delta?: number | undefined | null
   deltaLabel?: string
   icon: LucideIcon
-  trend: 'up' | 'down' | 'neutral'
+  trend?: 'up' | 'down' | 'neutral'
   suffix?: string
   sparklineData?: Array<{ value: number }>
   className?: string
@@ -28,7 +28,9 @@ export function OverviewKpiCard({
   sparklineData,
   className
 }: OverviewKpiCardProps) {
-  const formatValue = (val: number) => {
+  const formatValue = (val: number | undefined | null) => {
+    if (val == null || isNaN(val)) return '0'
+    
     switch (format) {
       case 'currency':
         return formatCurrency(val)
@@ -97,7 +99,7 @@ export function OverviewKpiCard({
             )}
           </div>
           
-          {delta !== undefined && deltaLabel && (
+          {delta !== undefined && delta !== null && deltaLabel && (
             <div className="flex items-center space-x-1 mt-3">
               {getTrendIcon()}
               <span className={cn("text-sm font-medium", getTrendColor())}>

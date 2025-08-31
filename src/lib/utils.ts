@@ -6,14 +6,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number | undefined | null): string {
+  if (amount == null || isNaN(amount)) return '$0.00'
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
   }).format(amount)
 }
 
-export function formatPercentage(value: number, decimals: number = 1): string {
+export function formatPercentage(value: number | undefined | null, decimals: number = 1): string {
+  if (value == null || isNaN(value)) return '0%'
   return `${value.toFixed(decimals)}%`
 }
 

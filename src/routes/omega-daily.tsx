@@ -1114,7 +1114,7 @@ function OmegaDailyPage() {
                   <Label htmlFor="labor_hours_diff">Labor Hours +/-</Label>
                   <Input
                     id="labor_hours_diff"
-                    value={`${laborHoursDiff >= 0 ? '+' : ''}${laborHoursDiff.toFixed(1)}h`}
+                    value={`${(laborHoursDiff ?? 0) >= 0 ? '+' : ''}${(laborHoursDiff ?? 0).toFixed(1)}h`}
                     disabled
                     className="bg-gray-100"
                   />

@@ -180,7 +180,7 @@ export function OsatSnapshot() {
               {getTrendIcon(trends.osat)}
               {getScoreIcon(averages.osat)}
               <span className={cn("text-xl font-bold", getScoreColor(averages.osat))}>
-                {averages.osat.toFixed(1)}
+                {(averages.osat ?? 0).toFixed(1)}
               </span>
             </div>
           </div>
@@ -198,7 +198,7 @@ export function OsatSnapshot() {
               {getTrendIcon(trends.accuracy)}
               {getScoreIcon(averages.accuracy)}
               <span className={cn("text-xl font-bold", getScoreColor(averages.accuracy))}>
-                {averages.accuracy.toFixed(1)}
+                {(averages.accuracy ?? 0).toFixed(1)}
               </span>
             </div>
           </div>
@@ -216,7 +216,7 @@ export function OsatSnapshot() {
               {getTrendIcon(trends.zod === 'up' ? 'down' : trends.zod === 'down' ? 'up' : 'neutral')}
               {getScoreIcon(averages.zod, true)}
               <span className={cn("text-xl font-bold", getScoreColor(averages.zod, true))}>
-                {averages.zod.toFixed(1)}
+                {(averages.zod ?? 0).toFixed(1)}
               </span>
             </div>
           </div>
@@ -234,7 +234,7 @@ export function OsatSnapshot() {
               {getTrendIcon(trends.complaints === 'up' ? 'down' : trends.complaints === 'down' ? 'up' : 'neutral')}
               {getScoreIcon(averages.complaints, true)}
               <span className={cn("text-xl font-bold", getScoreColor(averages.complaints, true))}>
-                {averages.complaints.toFixed(1)}
+                {(averages.complaints ?? 0).toFixed(1)}
               </span>
             </div>
           </div>

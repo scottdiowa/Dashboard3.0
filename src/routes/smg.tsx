@@ -177,28 +177,28 @@ function SmgPage() {
       label: 'Accuracy of Order',
       sortable: true,
       align: 'right' as const,
-      render: (value: number) => value.toFixed(2)
+      render: (value: number) => (value ?? 0).toFixed(2)
     },
     {
       key: 'zod_per_10k',
       label: 'ZOD per 10k',
       sortable: true,
       align: 'right' as const,
-      render: (value: number) => value.toFixed(2)
+      render: (value: number) => (value ?? 0).toFixed(2)
     },
     {
       key: 'cc_complaints',
       label: 'CC Complaints',
       sortable: true,
       align: 'right' as const,
-      render: (value: number) => value.toFixed(2)
+      render: (value: number) => (value ?? 0).toFixed(2)
     },
     {
       key: 'osat_decimal',
       label: 'OSAT Score',
       sortable: true,
       align: 'right' as const,
-      render: (value: number) => value.toFixed(2)
+      render: (value: number) => (value ?? 0).toFixed(2)
     },
     {
       key: 'notes',
@@ -391,11 +391,11 @@ function SmgPage() {
               />
               <YAxis 
                 {...chartDefaults.yAxis}
-                tickFormatter={(value) => value.toFixed(1)}
+                tickFormatter={(value) => (value ?? 0).toFixed(1)}
               />
               <Tooltip 
                 {...chartDefaults.tooltip}
-                formatter={(value: any) => [value.toFixed(2), 'OSAT Score']}
+                formatter={(value: any) => [(value ?? 0).toFixed(2), 'OSAT Score']}
               />
               <Line 
                 type="monotone" 

@@ -48,7 +48,7 @@ export function SmgSnapshot() {
           <div className="flex items-center space-x-2">
             {getScoreIcon(mockSmgData.osat)}
             <span className={cn("text-xl font-bold", getScoreColor(mockSmgData.osat))}>
-              {mockSmgData.osat.toFixed(1)}
+              {(mockSmgData.osat ?? 0).toFixed(1)}
             </span>
           </div>
         </div>
@@ -65,7 +65,7 @@ export function SmgSnapshot() {
           <div className="flex items-center space-x-2">
             {getScoreIcon(mockSmgData.accuracyOfOrder)}
             <span className={cn("text-xl font-bold", getScoreColor(mockSmgData.accuracyOfOrder))}>
-              {mockSmgData.accuracyOfOrder.toFixed(1)}
+              {(mockSmgData.accuracyOfOrder ?? 0).toFixed(1)}
             </span>
           </div>
         </div>
@@ -82,7 +82,7 @@ export function SmgSnapshot() {
           <div className="flex items-center space-x-2">
             {getScoreIcon(mockSmgData.zoneOfDefection)}
             <span className={cn("text-xl font-bold", getScoreColor(mockSmgData.zoneOfDefection))}>
-              {mockSmgData.zoneOfDefection.toFixed(1)}
+              {(mockSmgData.zoneOfDefection ?? 0).toFixed(1)}
             </span>
           </div>
         </div>
@@ -99,7 +99,7 @@ export function SmgSnapshot() {
           <div className="flex items-center space-x-2">
             {getScoreIcon(mockSmgData.customerComputers)}
             <span className={cn("text-xl font-bold", getScoreColor(mockSmgData.customerComputers))}>
-              {mockSmgData.customerComputers.toFixed(1)}
+              {(mockSmgData.customerComputers ?? 0).toFixed(1)}
             </span>
           </div>
         </div>
@@ -116,7 +116,7 @@ export function SmgSnapshot() {
           <div className="flex items-center space-x-2">
             {getScoreIcon(mockSmgData.tasteOfFood)}
             <span className={cn("text-xl font-bold", getScoreColor(mockSmgData.tasteOfFood))}>
-              {mockSmgData.tasteOfFood.toFixed(1)}
+              {(mockSmgData.tasteOfFood ?? 0).toFixed(1)}
             </span>
           </div>
         </div>

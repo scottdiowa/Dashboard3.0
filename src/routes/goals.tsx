@@ -266,11 +266,11 @@ export function GoalsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Actual</p>
-                <p className="text-xl font-semibold">${actuals.totalSales.toLocaleString()}</p>
+                <p className="text-xl font-semibold">${(actuals.totalSales ?? 0).toLocaleString()}</p>
               </div>
             </div>
             <div>
-              {statusChip(actuals.totalSales >= (form.watch('sales_target') || 0), actuals.totalSales >= (form.watch('sales_target') || 0) ? 'On Track' : 'Behind')}
+              {statusChip((actuals.totalSales ?? 0) >= (form.watch('sales_target') || 0), (actuals.totalSales ?? 0) >= (form.watch('sales_target') || 0) ? 'On Track' : 'Behind')}
             </div>
           </div>
         </div>
@@ -286,11 +286,11 @@ export function GoalsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Actual %</p>
-                <p className="text-xl font-semibold">{actuals.avgLaborPct.toFixed(1)}%</p>
+                <p className="text-xl font-semibold">{(actuals.avgLaborPct ?? 0).toFixed(1)}%</p>
               </div>
             </div>
             <div>
-              {statusChip(actuals.avgLaborPct <= (form.watch('labor_target_pct') || 0), actuals.avgLaborPct <= (form.watch('labor_target_pct') || 0) ? 'On Track' : 'High')}
+              {statusChip((actuals.avgLaborPct ?? 0) <= (form.watch('labor_target_pct') || 0), (actuals.avgLaborPct ?? 0) <= (form.watch('labor_target_pct') || 0) ? 'On Track' : 'High')}
             </div>
           </div>
         </div>
@@ -306,11 +306,11 @@ export function GoalsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Waste Actual %</p>
-                <p className="text-xl font-semibold">{actuals.wastePct.toFixed(2)}%</p>
+                <p className="text-xl font-semibold">{(actuals.wastePct ?? 0).toFixed(2)}%</p>
               </div>
             </div>
             <div>
-              {statusChip(actuals.wastePct <= (form.watch('waste_target_pct') || 0), actuals.wastePct <= (form.watch('waste_target_pct') || 0) ? 'On Track' : 'High')}
+              {statusChip((actuals.wastePct ?? 0) <= (form.watch('waste_target_pct') || 0), (actuals.wastePct ?? 0) <= (form.watch('waste_target_pct') || 0) ? 'On Track' : 'High')}
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">
               <div>
@@ -319,11 +319,11 @@ export function GoalsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Food Var Actual %</p>
-                <p className="text-xl font-semibold">{actuals.foodVarPct.toFixed(2)}%</p>
+                <p className="text-xl font-semibold">{(actuals.foodVarPct ?? 0).toFixed(2)}%</p>
               </div>
             </div>
             <div>
-              {statusChip(actuals.foodVarPct <= (form.watch('food_variance_target_pct') || 0), actuals.foodVarPct <= (form.watch('food_variance_target_pct') || 0) ? 'On Track' : 'High')}
+              {statusChip((actuals.foodVarPct ?? 0) <= (form.watch('food_variance_target_pct') || 0), (actuals.foodVarPct ?? 0) <= (form.watch('food_variance_target_pct') || 0) ? 'On Track' : 'High')}
             </div>
           </div>
         </div>

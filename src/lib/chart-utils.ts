@@ -14,9 +14,9 @@ export const chartFormatters = {
     minimumFractionDigits: 2
   }).format(value),
   
-  percent: (value: number, decimals = 1) => `${(value ?? 0).toFixed(decimals)}%`,
+  percent: (value: number | undefined | null, decimals = 1) => `${(value ?? 0).toFixed(decimals)}%`,
   
-  hours: (value: number, decimals = 1) => `${(value ?? 0).toFixed(decimals)}h`,
+  hours: (value: number | undefined | null, decimals = 1) => `${(value ?? 0).toFixed(decimals)}h`,
   
   dateShort: (iso: string | Date) => {
     const dateObj = typeof iso === 'string' 
@@ -32,7 +32,8 @@ export const chartFormatters = {
     return format(dateObj, 'MMM dd, yyyy')
   },
 
-  currencyCompact: (value: number) => {
+  currencyCompact: (value: number | undefined | null) => {
+    if (value == null || isNaN(value)) return '$0'
     const absValue = Math.abs(value)
     if (absValue >= 1000000) {
       return `$${(value / 1000000).toFixed(1)}M`
