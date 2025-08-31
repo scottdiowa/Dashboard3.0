@@ -294,8 +294,8 @@ function OverviewPage() {
             muted 
             playsInline
             controls
-            className="max-w-4xl rounded-lg shadow-lg"
-            style={{ maxHeight: '480px', width: '100%' }}
+            className="w-full rounded-lg shadow-lg"
+            style={{ height: '200px', objectFit: 'cover', width: '100%' }}
           >
             <source src="/banner-video.mp4" type="video/mp4" />
             <p>Your browser does not support the video tag.</p>
