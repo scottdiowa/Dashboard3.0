@@ -48,7 +48,7 @@ type WeekendingSheetRow = {
 
 function WeekendingSheetPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingEntry, setEditingEntry] = useState<any>(null)
+  const [editingEntry, setEditingEntry] = useState<WeekendingSheetRow | null>(null)
   const [welearnExpanded, setWelearnExpanded] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -61,30 +61,33 @@ function WeekendingSheetPage() {
     return format(endOfWeek(saturday, { weekStartsOn: 6 }), 'yyyy-MM-dd')
   }
 
+  // Get default form values
+  const getDefaultFormValues = (): WeekendingSheetFormData => ({
+    week_ending_date: getCurrentWeekEnding(),
+    manager_name: 'Scott',
+    breakfast_sales: 0,
+    late_night_sales: 0,
+    net_sales: 0,
+    discounts: 0,
+    cash: 0,
+    food_total: 0,
+    food_cost: 0,
+    variance_dollars: 0,
+    food_variance_percentage: 0,
+    labor: 0,
+    credit_hours: 0,
+    reason: '',
+    onboarding: false,
+    crew_food_safety_quiz: 0,
+    mgr_food_safety_quiz: 0,
+    new_hire_name: '',
+    terminations: '',
+    term_date: '',
+  })
+
   const form = useForm<WeekendingSheetFormData>({
     resolver: zodResolver(weekendingSheetSchema),
-    defaultValues: {
-      week_ending_date: getCurrentWeekEnding(),
-      manager_name: 'Scott',
-      breakfast_sales: 0,
-      late_night_sales: 0,
-      net_sales: 0,
-      discounts: 0,
-      cash: 0,
-      food_total: 0,
-      food_cost: 0,
-      variance_dollars: 0,
-      food_variance_percentage: 0,
-      labor: 0,
-      credit_hours: 0,
-      reason: '',
-      onboarding: false,
-      crew_food_safety_quiz: 0,
-      mgr_food_safety_quiz: 0,
-      new_hire_name: '',
-      terminations: '',
-      term_date: '',
-    },
+    defaultValues: getDefaultFormValues(),
   })
 
   const insertMutation = useMutation({
@@ -118,31 +121,10 @@ function WeekendingSheetPage() {
       toast({ title: 'Success!', description: 'Weekending sheet saved successfully.' })
       setIsFormOpen(false)
       setEditingEntry(null)
-      form.reset({
-        week_ending_date: getCurrentWeekEnding(),
-        manager_name: 'Scott',
-        breakfast_sales: 0,
-        late_night_sales: 0,
-        net_sales: 0,
-        discounts: 0,
-        cash: 0,
-        food_total: 0,
-        food_cost: 0,
-        variance_dollars: 0,
-        food_variance_percentage: 0,
-        labor: 0,
-        credit_hours: 0,
-        reason: '',
-        onboarding: false,
-        crew_food_safety_quiz: 0,
-        mgr_food_safety_quiz: 0,
-        new_hire_name: '',
-        terminations: '',
-        term_date: '',
-      })
+      form.reset(getDefaultFormValues())
       queryClient.invalidateQueries({ queryKey: ['weekending_sheet', storeId] })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: 'Save failed', description: error?.message || 'Unable to save entry.', variant: 'destructive' })
     }
   })
@@ -164,8 +146,8 @@ function WeekendingSheetPage() {
       form.reset()
       queryClient.invalidateQueries({ queryKey: ['weekending_sheet', storeId] })
     },
-    onError: (error: any) => {
-      toast({ title: 'Update failed', description: error.message, variant: 'destructive' })
+    onError: (error: Error) => {
+      toast({ title: 'Update failed', description: error?.message || 'Unable to update entry.', variant: 'destructive' })
     }
   })
 
@@ -178,8 +160,8 @@ function WeekendingSheetPage() {
       toast({ title: 'Deleted', description: 'Weekending sheet entry removed.' })
       queryClient.invalidateQueries({ queryKey: ['weekending_sheet', storeId] })
     },
-    onError: (error: any) => {
-      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' })
+    onError: (error: Error) => {
+      toast({ title: 'Delete failed', description: error?.message || 'Unable to delete entry.', variant: 'destructive' })
     }
   })
 
@@ -209,7 +191,7 @@ function WeekendingSheetPage() {
     }
   }
 
-  const onInvalidSubmit = (errors: any) => {
+  const onInvalidSubmit = (errors: Record<string, any>) => {
     console.error('Form validation failed:', errors)
     
     // Log specific field errors for debugging
@@ -226,27 +208,41 @@ function WeekendingSheetPage() {
 
   // Resolve store_id for current user
   useEffect(() => {
-    let active = true
-    ;(async () => {
-      const { data: auth } = await supabase.auth.getUser()
-      const userId = auth.user?.id
-      if (!userId) return
+    let isMounted = true
+    
+    const resolveStoreId = async () => {
+      try {
+        const { data: auth } = await supabase.auth.getUser()
+        const userId = auth.user?.id
+        if (!userId || !isMounted) return
 
-      console.log('Resolving store_id for user:', userId)
+        console.log('Resolving store_id for user:', userId)
 
-      const { data } = await supabase
-        .from('users')
-        .select('store_id')
-        .eq('id', userId)
-        .maybeSingle()
+        const { data } = await supabase
+          .from('users')
+          .select('store_id')
+          .eq('id', userId)
+          .maybeSingle()
 
-      console.log('User data from database:', data)
-      console.log('Store ID resolved:', data?.store_id)
+        console.log('User data from database:', data)
+        console.log('Store ID resolved:', data?.store_id)
 
-      if (!active) return
-      setStoreId(data?.store_id ?? null)
-    })()
-    return () => { active = false }
+        if (isMounted) {
+          setStoreId(data?.store_id ?? null)
+        }
+      } catch (error) {
+        console.error('Error resolving store ID:', error)
+        if (isMounted) {
+          setStoreId(null)
+        }
+      }
+    }
+
+    resolveStoreId()
+    
+    return () => { 
+      isMounted = false 
+    }
   }, [])
 
   // Load weekending sheet entries
@@ -268,7 +264,7 @@ function WeekendingSheetPage() {
     enabled: !!storeId,
   })
 
-  const handleEdit = (entry: any) => {
+  const handleEdit = (entry: WeekendingSheetRow) => {
     setEditingEntry(entry)
     form.reset({
       week_ending_date: entry.week_ending_date,
@@ -380,28 +376,7 @@ function WeekendingSheetPage() {
           <Button 
             onClick={() => {
               setEditingEntry(null)
-              form.reset({
-                week_ending_date: getCurrentWeekEnding(),
-                manager_name: 'Scott',
-                breakfast_sales: 0,
-                late_night_sales: 0,
-                net_sales: 0,
-                discounts: 0,
-                cash: 0,
-                food_total: 0,
-                food_cost: 0,
-                variance_dollars: 0,
-                food_variance_percentage: 0,
-                labor: 0,
-                credit_hours: 0,
-                reason: '',
-                onboarding: false,
-                crew_food_safety_quiz: 0,
-                mgr_food_safety_quiz: 0,
-                new_hire_name: '',
-                terminations: '',
-                term_date: '',
-              })
+              form.reset(getDefaultFormValues())
               setIsFormOpen(true)
             }} 
             className="wendys-button w-full md:w-auto" 
