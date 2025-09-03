@@ -46,6 +46,7 @@ type OmegaDailyRow = {
   labor_hours: number
   ideal_labor_hours: number
   labor_percentage: number
+  theoretical_food_cost: number
   food_variance_cost: number
   waste_amount: number
   breakfast_sales: number

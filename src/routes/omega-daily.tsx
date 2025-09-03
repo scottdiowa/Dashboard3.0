@@ -35,6 +35,7 @@ type OmegaDailyRow = {
   labor_hours: number
   ideal_labor_hours: number
   labor_percentage: number
+  theoretical_food_cost: number
   food_variance_cost: number
   waste_amount: number
   breakfast_sales: number
@@ -80,6 +81,7 @@ function OmegaDailyPage() {
           labor_hours: Math.floor(Math.random() * 40) + 60, // 60-100 hours
           ideal_labor_hours: Math.floor(Math.random() * 30) + 50, // 50-80 hours
           labor_percentage: Math.floor(Math.random() * 10) + 15, // 15-25%
+          theoretical_food_cost: Math.floor(Math.random() * 2000) + 3000, // $3000-5000
           food_variance_cost: Math.floor(Math.random() * 200) - 100, // -$100 to +$100
           waste_amount: Math.floor(Math.random() * 100) + 50, // $50-150
           breakfast_sales: Math.floor(Math.random() * 1000) + 500, // $500-1500
@@ -128,6 +130,7 @@ function OmegaDailyPage() {
       labor_hours: 0,
       ideal_labor_hours: 0,
       labor_percentage: 0,
+      theoretical_food_cost: 0,
       food_variance_cost: 0,
       waste_amount: 0,
       breakfast_sales: 0,
@@ -159,6 +162,7 @@ function OmegaDailyPage() {
         labor_hours: payload.labor_hours,
         ideal_labor_hours: payload.ideal_labor_hours,
         labor_percentage: payload.labor_percentage,
+        theoretical_food_cost: payload.theoretical_food_cost,
         food_variance_cost: payload.food_variance_cost,
         waste_amount: payload.waste_amount,
         breakfast_sales: payload.breakfast_sales,
@@ -209,6 +213,7 @@ function OmegaDailyPage() {
         labor_hours: payload.labor_hours,
         ideal_labor_hours: payload.ideal_labor_hours,
         labor_percentage: payload.labor_percentage,
+        theoretical_food_cost: payload.theoretical_food_cost,
         food_variance_cost: payload.food_variance_cost,
         waste_amount: payload.waste_amount,
         breakfast_sales: payload.breakfast_sales,
@@ -271,6 +276,7 @@ function OmegaDailyPage() {
         labor_hours: payload.labor_hours,
         ideal_labor_hours: payload.ideal_labor_hours,
         labor_percentage: payload.labor_percentage,
+        theoretical_food_cost: payload.theoretical_food_cost,
         food_variance_cost: payload.food_variance_cost,
         waste_amount: payload.waste_amount,
         breakfast_sales: payload.breakfast_sales,
@@ -512,6 +518,7 @@ function OmegaDailyPage() {
       labor_hours: entry.labor_hours != null ? Number(entry.labor_hours) : 0,
       ideal_labor_hours: entry.ideal_labor_hours != null ? Number(entry.ideal_labor_hours) : 0,
       labor_percentage: entry.labor_percentage != null ? Number(entry.labor_percentage) : 0,
+      theoretical_food_cost: entry.theoretical_food_cost != null ? Number(entry.theoretical_food_cost) : 0,
       food_variance_cost: entry.food_variance_cost != null ? Number(entry.food_variance_cost) : 0,
       waste_amount: entry.waste_amount != null ? Number(entry.waste_amount) : 0,
       breakfast_sales: entry.breakfast_sales != null ? Number(entry.breakfast_sales) : 0,
@@ -554,6 +561,7 @@ function OmegaDailyPage() {
               labor_hours: 0,
               ideal_labor_hours: 0,
               labor_percentage: 0,
+              theoretical_food_cost: 0,
               food_variance_cost: 0,
               waste_amount: 0,
               breakfast_sales: 0,
@@ -1010,6 +1018,7 @@ function OmegaDailyPage() {
                                 labor_hours: existing.labor_hours != null ? Number(existing.labor_hours) : 0,
                                 ideal_labor_hours: existing.ideal_labor_hours != null ? Number(existing.ideal_labor_hours) : 0,
                                 labor_percentage: existing.labor_percentage != null ? Number(existing.labor_percentage) : 0,
+                                theoretical_food_cost: existing.theoretical_food_cost != null ? Number(existing.theoretical_food_cost) : 0,
                                 food_variance_cost: existing.food_variance_cost != null ? Number(existing.food_variance_cost) : 0,
                                 waste_amount: existing.waste_amount != null ? Number(existing.waste_amount) : 0,
                                 breakfast_sales: existing.breakfast_sales != null ? Number(existing.breakfast_sales) : 0,
@@ -1025,6 +1034,7 @@ function OmegaDailyPage() {
                                 labor_hours: 0,
                                 ideal_labor_hours: 0,
                                 labor_percentage: 0,
+                                theoretical_food_cost: 0,
                                 food_variance_cost: 0,
                                 waste_amount: 0,
                                 breakfast_sales: 0,
@@ -1131,6 +1141,20 @@ function OmegaDailyPage() {
                   />
                   {form.formState.errors.labor_percentage && (
                     <p className="text-sm text-red-600">{form.formState.errors.labor_percentage.message}</p>
+                  )}
+                </div>
+
+                {/* Theoretical Food Cost */}
+                <div className="space-y-2">
+                  <Label htmlFor="theoretical_food_cost">Theoretical Food Cost ($)</Label>
+                  <Input
+                    id="theoretical_food_cost"
+                    type="number"
+                    step="0.01"
+                    {...form.register('theoretical_food_cost')}
+                  />
+                  {form.formState.errors.theoretical_food_cost && (
+                    <p className="text-sm text-red-600">{form.formState.errors.theoretical_food_cost.message}</p>
                   )}
                 </div>
 
