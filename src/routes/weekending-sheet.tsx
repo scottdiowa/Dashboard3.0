@@ -85,6 +85,14 @@ function WeekendingSheetPage() {
     term_date: '',
   })
 
+  // Helper function to ensure manager name is valid
+  const getValidManagerName = (name: string): 'Scott' | 'Sophear' | 'Letoya' | 'Carissa' => {
+    if (name === 'Scott' || name === 'Sophear' || name === 'Letoya' || name === 'Carissa') {
+      return name
+    }
+    return 'Scott'
+  }
+
   const form = useForm<WeekendingSheetFormData>({
     resolver: zodResolver(weekendingSheetSchema),
     defaultValues: getDefaultFormValues(),
@@ -268,7 +276,7 @@ function WeekendingSheetPage() {
     setEditingEntry(entry)
     form.reset({
       week_ending_date: entry.week_ending_date,
-      manager_name: entry.manager_name,
+      manager_name: getValidManagerName(entry.manager_name),
       breakfast_sales: entry.breakfast_sales || 0,
       late_night_sales: entry.late_night_sales || 0,
       net_sales: entry.net_sales || 0,
