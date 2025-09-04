@@ -131,11 +131,17 @@ function WeekendingSheetPage() {
       setEditingEntry(null)
       form.reset(getDefaultFormValues())
       // Invalidate all weekending-related queries
+      console.log('🔄 Invalidating queries after weekending save...')
       queryClient.invalidateQueries({ queryKey: ['weekending_sheet', storeId] })
-      queryClient.invalidateQueries({ predicate: (query) => 
-        query.queryKey[0] === 'overview-weekending' || 
-        query.queryKey[0] === 'overview-weekending-charts'
-      })
+      queryClient.invalidateQueries({ predicate: (query) => {
+        const shouldInvalidate = query.queryKey[0] === 'overview-weekending' || 
+          query.queryKey[0] === 'overview-weekending-charts'
+        if (shouldInvalidate) {
+          console.log('🗑️ Invalidating query:', query.queryKey)
+        }
+        return shouldInvalidate
+      }})
+      console.log('✅ Query invalidation complete')
     },
     onError: (error: Error) => {
       toast({ title: 'Save failed', description: error?.message || 'Unable to save entry.', variant: 'destructive' })
@@ -158,11 +164,17 @@ function WeekendingSheetPage() {
       setEditingEntry(null)
       form.reset()
       // Invalidate all weekending-related queries
+      console.log('🔄 Invalidating queries after weekending save...')
       queryClient.invalidateQueries({ queryKey: ['weekending_sheet', storeId] })
-      queryClient.invalidateQueries({ predicate: (query) => 
-        query.queryKey[0] === 'overview-weekending' || 
-        query.queryKey[0] === 'overview-weekending-charts'
-      })
+      queryClient.invalidateQueries({ predicate: (query) => {
+        const shouldInvalidate = query.queryKey[0] === 'overview-weekending' || 
+          query.queryKey[0] === 'overview-weekending-charts'
+        if (shouldInvalidate) {
+          console.log('🗑️ Invalidating query:', query.queryKey)
+        }
+        return shouldInvalidate
+      }})
+      console.log('✅ Query invalidation complete')
     },
     onError: (error: Error) => {
       toast({ title: 'Update failed', description: error?.message || 'Unable to update entry.', variant: 'destructive' })
@@ -177,11 +189,17 @@ function WeekendingSheetPage() {
     onSuccess: () => {
       toast({ title: 'Deleted', description: 'Weekending sheet entry removed.' })
       // Invalidate all weekending-related queries
+      console.log('🔄 Invalidating queries after weekending save...')
       queryClient.invalidateQueries({ queryKey: ['weekending_sheet', storeId] })
-      queryClient.invalidateQueries({ predicate: (query) => 
-        query.queryKey[0] === 'overview-weekending' || 
-        query.queryKey[0] === 'overview-weekending-charts'
-      })
+      queryClient.invalidateQueries({ predicate: (query) => {
+        const shouldInvalidate = query.queryKey[0] === 'overview-weekending' || 
+          query.queryKey[0] === 'overview-weekending-charts'
+        if (shouldInvalidate) {
+          console.log('🗑️ Invalidating query:', query.queryKey)
+        }
+        return shouldInvalidate
+      }})
+      console.log('✅ Query invalidation complete')
     },
     onError: (error: Error) => {
       toast({ title: 'Delete failed', description: error?.message || 'Unable to delete entry.', variant: 'destructive' })

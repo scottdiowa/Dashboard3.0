@@ -108,6 +108,12 @@ function OverviewPage() {
     queryFn: async () => {
       if (!storeId) return []
 
+      console.log('📊 Fetching overview weekending data with filters:', {
+        storeId,
+        dateRangeFilter,
+        queryKey: ['overview-weekending', storeId, dateRangeFilter?.start, dateRangeFilter?.end]
+      })
+
       let query = supabase
         .from('weekending_sheet')
         .select('*')
@@ -123,6 +129,7 @@ function OverviewPage() {
         .order('week_ending_date', { ascending: true })
 
       if (error) throw error
+      console.log('📊 Overview weekending data fetched:', data?.length || 0, 'entries')
       return data || []
     },
     enabled: !!storeId,
@@ -139,6 +146,12 @@ function OverviewPage() {
       twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84) // 12 weeks * 7 days
       const startDate = twelveWeeksAgo.toISOString().slice(0, 10)
 
+      console.log('📈 Fetching overview weekending chart data:', {
+        storeId,
+        startDate,
+        queryKey: ['overview-weekending-charts', storeId]
+      })
+
       const { data, error } = await supabase
         .from('weekending_sheet')
         .select('*')
@@ -147,6 +160,7 @@ function OverviewPage() {
         .order('week_ending_date', { ascending: true })
 
       if (error) throw error
+      console.log('📈 Overview weekending chart data fetched:', data?.length || 0, 'entries')
       return data || []
     },
     enabled: !!storeId,
@@ -293,9 +307,9 @@ function OverviewPage() {
             loop 
             muted 
             playsInline
-            controls
-            className="w-full rounded-lg shadow-lg"
-            style={{ height: '200px', objectFit: 'cover', width: '100%' }}
+
+            className="w-full rounded-lg shadow-lg opacity-60"
+            style={{ height: '200px', objectFit: 'cover', width: '100%', pointerEvents: 'none' }}
           >
             <source src="/banner-video.mp4" type="video/mp4" />
             <p>Your browser does not support the video tag.</p>
