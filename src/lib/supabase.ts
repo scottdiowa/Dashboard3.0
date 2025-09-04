@@ -75,6 +75,7 @@ export interface Database {
           ideal_labor_hours: number
           labor_hours_diff: number
           labor_percentage: number
+          theoretical_food_cost: number
           food_variance_cost: number
           food_variance_percentage: number
           waste_amount: number
@@ -92,6 +93,7 @@ export interface Database {
           labor_hours: number
           ideal_labor_hours: number
           labor_percentage: number
+          theoretical_food_cost: number
           food_variance_cost: number
           waste_amount: number
           breakfast_sales: number
@@ -107,6 +109,7 @@ export interface Database {
           labor_hours?: number
           ideal_labor_hours?: number
           labor_percentage?: number
+          theoretical_food_cost?: number
           food_variance_cost?: number
           waste_amount?: number
           breakfast_sales?: number
