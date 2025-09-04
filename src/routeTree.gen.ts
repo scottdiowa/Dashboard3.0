@@ -9,16 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WeekendingSheetRouteImport } from './routes/weekending-sheet'
 import { Route as SmgRouteImport } from './routes/smg'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as OmegaDailyRouteImport } from './routes/omega-daily'
-import { Route as WeekendingSheetRouteImport } from './routes/weekending-sheet'
-import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as InterviewsRouteImport } from './routes/interviews'
 import { Route as GoalsRouteImport } from './routes/goals'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
 
+const WeekendingSheetRoute = WeekendingSheetRouteImport.update({
+  id: '/weekending-sheet',
+  path: '/weekending-sheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SmgRoute = SmgRouteImport.update({
   id: '/smg',
   path: '/smg',
@@ -27,6 +33,11 @@ const SmgRoute = SmgRouteImport.update({
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OverviewRoute = OverviewRouteImport.update({
@@ -39,16 +50,6 @@ const OmegaDailyRoute = OmegaDailyRouteImport.update({
   path: '/omega-daily',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WeekendingSheetRoute = WeekendingSheetRouteImport.update({
-  id: '/weekending-sheet',
-  path: '/weekending-sheet',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const InterviewsRoute = InterviewsRouteImport.update({
   id: '/interviews',
   path: '/interviews',
@@ -57,6 +58,11 @@ const InterviewsRoute = InterviewsRouteImport.update({
 const GoalsRoute = GoalsRouteImport.update({
   id: '/goals',
   path: '/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -71,10 +77,11 @@ export interface FileRoutesByFullPath {
   '/goals': typeof GoalsRoute
   '/interviews': typeof InterviewsRoute
   '/omega-daily': typeof OmegaDailyRoute
-  '/weekending-sheet': typeof WeekendingSheetRoute
   '/overview': typeof OverviewRoute
+  '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/smg': typeof SmgRoute
+  '/weekending-sheet': typeof WeekendingSheetRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -82,10 +89,11 @@ export interface FileRoutesByTo {
   '/goals': typeof GoalsRoute
   '/interviews': typeof InterviewsRoute
   '/omega-daily': typeof OmegaDailyRoute
-  '/weekending-sheet': typeof WeekendingSheetRoute
   '/overview': typeof OverviewRoute
+  '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/smg': typeof SmgRoute
+  '/weekending-sheet': typeof WeekendingSheetRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -94,10 +102,11 @@ export interface FileRoutesById {
   '/goals': typeof GoalsRoute
   '/interviews': typeof InterviewsRoute
   '/omega-daily': typeof OmegaDailyRoute
-  '/weekending-sheet': typeof WeekendingSheetRoute
   '/overview': typeof OverviewRoute
+  '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/smg': typeof SmgRoute
+  '/weekending-sheet': typeof WeekendingSheetRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -108,8 +117,10 @@ export interface FileRouteTypes {
     | '/interviews'
     | '/omega-daily'
     | '/overview'
+    | '/settings'
     | '/setup'
     | '/smg'
+    | '/weekending-sheet'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -117,10 +128,11 @@ export interface FileRouteTypes {
     | '/goals'
     | '/interviews'
     | '/omega-daily'
-    | '/weekending-sheet'
     | '/overview'
+    | '/settings'
     | '/setup'
     | '/smg'
+    | '/weekending-sheet'
   id:
     | '__root__'
     | '/'
@@ -128,10 +140,11 @@ export interface FileRouteTypes {
     | '/goals'
     | '/interviews'
     | '/omega-daily'
-    | '/weekending-sheet'
     | '/overview'
+    | '/settings'
     | '/setup'
     | '/smg'
+    | '/weekending-sheet'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -140,10 +153,11 @@ export interface RootRouteChildren {
   GoalsRoute: typeof GoalsRoute
   InterviewsRoute: typeof InterviewsRoute
   OmegaDailyRoute: typeof OmegaDailyRoute
-  WeekendingSheetRoute: typeof WeekendingSheetRoute
   OverviewRoute: typeof OverviewRoute
+  SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
   SmgRoute: typeof SmgRoute
+  WeekendingSheetRoute: typeof WeekendingSheetRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -153,13 +167,6 @@ declare module '@tanstack/react-router' {
       path: '/weekending-sheet'
       fullPath: '/weekending-sheet'
       preLoaderRoute: typeof WeekendingSheetRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/smg': {
@@ -174,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/overview': {
@@ -204,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GoalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -220,10 +241,11 @@ const rootRouteChildren: RootRouteChildren = {
   GoalsRoute: GoalsRoute,
   InterviewsRoute: InterviewsRoute,
   OmegaDailyRoute: OmegaDailyRoute,
-  WeekendingSheetRoute: WeekendingSheetRoute,
   OverviewRoute: OverviewRoute,
+  SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
   SmgRoute: SmgRoute,
+  WeekendingSheetRoute: WeekendingSheetRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

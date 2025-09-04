@@ -8,10 +8,11 @@ import { SalesTrendChart } from '@/components/overview/SalesTrendChart'
 import { LaborVsIdealChart } from '@/components/overview/LaborVsIdealChart'
 import { OsatSnapshot } from '@/components/overview/OsatSnapshot'
 import { InterviewsTodayList } from '@/components/overview/InterviewsTodayList'
-import { VideoManager } from '@/components/overview/VideoManager'
 import { ChartCard } from '@/components/ui/chart-card'
 import { FilterToolbar, useFilters } from '@/components/ui/filter-toolbar'
-import { type VideoFile } from '@/lib/video-manager'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Video, Settings } from 'lucide-react'
+import { getAvailableVideos, type VideoFile } from '@/lib/video-manager'
 
 import { supabase } from '@/lib/supabase'
 import { useQuery } from '@tanstack/react-query'
@@ -24,15 +25,21 @@ export const Route = createFileRoute('/overview')({
 function OverviewPage() {
   const [storeId, setStoreId] = useState<string | null>(null)
   const [selectedVideo, setSelectedVideo] = useState<string>('banner-video.mp4')
+  const [availableVideos, setAvailableVideos] = useState<VideoFile[]>([])
 
   // Use the new filter hook with persistence
   const filters = useFilters('overview', 'today')
 
-  // Load saved video selection from localStorage
+  // Load available videos and saved selection
   useEffect(() => {
+    const videos = getAvailableVideos()
+    setAvailableVideos(videos)
+    
     const savedVideo = localStorage.getItem('banner-video-selection')
-    if (savedVideo) {
+    if (savedVideo && videos.some(v => v.value === savedVideo)) {
       setSelectedVideo(savedVideo)
+    } else if (videos.length > 0) {
+      setSelectedVideo(videos[0].value)
     }
   }, [])
 
@@ -40,16 +47,6 @@ function OverviewPage() {
   const handleVideoChange = (videoValue: string) => {
     setSelectedVideo(videoValue)
     localStorage.setItem('banner-video-selection', videoValue)
-  }
-
-  // Handle video list updates from VideoManager
-  const handleVideosUpdate = (videos: VideoFile[]) => {
-    // If current selection is no longer available, switch to first video
-    if (!videos.some(v => v.value === selectedVideo) && videos.length > 0) {
-      const newSelection = videos[0].value
-      setSelectedVideo(newSelection)
-      localStorage.setItem('banner-video-selection', newSelection)
-    }
   }
 
   // Resolve store_id for current user
@@ -331,12 +328,35 @@ function OverviewPage() {
 
       {/* Video Banner */}
       <div className="wendys-card">
-        <VideoManager
-          selectedVideo={selectedVideo}
-          onVideoChange={handleVideoChange}
-          onVideosUpdate={handleVideosUpdate}
-        />
-        <div className="flex justify-center mt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <Video className="h-5 w-5 text-wendys-red" />
+            <h3 className="text-lg font-semibold text-wendys-charcoal">Banner Video</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={selectedVideo} onValueChange={handleVideoChange}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select video" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableVideos.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <a 
+              href="/settings" 
+              className="flex items-center gap-1 text-sm text-gray-600 hover:text-wendys-red transition-colors"
+              title="Manage videos in Settings"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Manage</span>
+            </a>
+          </div>
+        </div>
+        <div className="flex justify-center">
           <video 
             key={selectedVideo} // Force re-render when video changes
             autoPlay 
