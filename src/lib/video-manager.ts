@@ -23,10 +23,17 @@ export function getAvailableVideos(): VideoFile[] {
     const stored = localStorage.getItem('available-videos')
     if (stored) {
       const parsed = JSON.parse(stored)
-      return parsed.map((video: any) => ({
+      const videos = parsed.map((video: any) => ({
         ...video,
         lastModified: video.lastModified ? new Date(video.lastModified) : undefined
       }))
+      
+      // Remove duplicates based on value (filename)
+      const uniqueVideos = videos.filter((video: VideoFile, index: number, self: VideoFile[]) => 
+        index === self.findIndex(v => v.value === video.value)
+      )
+      
+      return uniqueVideos
     }
   } catch (error) {
     console.error('Error loading videos from localStorage:', error)
@@ -46,7 +53,20 @@ export function saveAvailableVideos(videos: VideoFile[]): void {
 // Add a new video to the list
 export function addVideo(video: VideoFile): VideoFile[] {
   const currentVideos = getAvailableVideos()
-  const updatedVideos = [...currentVideos, video]
+  
+  // Check if video already exists (by value)
+  const existingIndex = currentVideos.findIndex(v => v.value === video.value)
+  
+  let updatedVideos: VideoFile[]
+  if (existingIndex >= 0) {
+    // Update existing video
+    updatedVideos = [...currentVideos]
+    updatedVideos[existingIndex] = video
+  } else {
+    // Add new video
+    updatedVideos = [...currentVideos, video]
+  }
+  
   saveAvailableVideos(updatedVideos)
   return updatedVideos
 }
@@ -123,4 +143,17 @@ export function getVideoMetadata(videoValue: string): Promise<{ duration: number
     video.onerror = () => resolve(null)
     video.src = `/${videoValue}`
   })
+}
+
+// Clean up and reset videos to defaults
+export function resetVideosToDefaults(): VideoFile[] {
+  localStorage.removeItem('available-videos')
+  return DEFAULT_VIDEOS
+}
+
+// Clean up duplicates from localStorage
+export function cleanupDuplicateVideos(): VideoFile[] {
+  const videos = getAvailableVideos()
+  saveAvailableVideos(videos) // This will save the deduplicated list
+  return videos
 }

@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { 
-  getAvailableVideos, 
   addVideo, 
   removeVideo, 
   validateVideoFile, 
   formatFileSize, 
   createVideoFromFile,
   getVideoMetadata,
+  cleanupDuplicateVideos,
+  resetVideosToDefaults,
   type VideoFile 
 } from '@/lib/video-manager'
 
@@ -32,7 +33,8 @@ export function VideoManager({ selectedVideo, onVideoChange, onVideosUpdate }: V
   // Load available videos from localStorage
   const loadVideos = async () => {
     try {
-      const availableVideos = getAvailableVideos()
+      // Clean up any duplicates first
+      const availableVideos = cleanupDuplicateVideos()
       setVideos(availableVideos)
       onVideosUpdate(availableVideos)
       
@@ -182,13 +184,33 @@ export function VideoManager({ selectedVideo, onVideoChange, onVideosUpdate }: V
         <div className="bg-gray-50 rounded-lg p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-wendys-charcoal">Video Management</h4>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowManager(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm('Reset all videos to defaults? This will remove any custom videos you\'ve added.')) {
+                    const defaultVideos = resetVideosToDefaults()
+                    setVideos(defaultVideos)
+                    onVideosUpdate(defaultVideos)
+                    toast({
+                      title: "Reset Complete",
+                      description: "Videos have been reset to defaults",
+                    })
+                  }
+                }}
+                className="text-xs"
+              >
+                Reset to Defaults
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowManager(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Upload Section */}
