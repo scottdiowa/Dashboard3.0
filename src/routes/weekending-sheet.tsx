@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
-import { Plus, Edit, Trash2, Download, ChevronDown, ChevronUp, FileText, Users, Calculator, Calendar } from 'lucide-react'
+import { Plus, Edit, Trash2, Download, FileText, Users, Calculator, Calendar } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,16 +30,12 @@ type WeekendingSheetRow = {
   net_sales: number
   discounts: number
   cash: number
-  food_total: number
   food_cost: number
   variance_dollars: number
   food_variance_percentage: number
   labor: number
   credit_hours: number
   reason?: string
-  onboarding: boolean
-  crew_food_safety_quiz: number
-  mgr_food_safety_quiz: number
   new_hire_name?: string
   terminations?: string
   term_date?: string
@@ -49,7 +45,6 @@ type WeekendingSheetRow = {
 function WeekendingSheetPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<WeekendingSheetRow | null>(null)
-  const [welearnExpanded, setWelearnExpanded] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [storeId, setStoreId] = useState<string | null>(null)
@@ -70,16 +65,12 @@ function WeekendingSheetPage() {
     net_sales: 0,
     discounts: 0,
     cash: 0,
-    food_total: 0,
     food_cost: 0,
     variance_dollars: 0,
     food_variance_percentage: 0,
     labor: 0,
     credit_hours: 0,
     reason: '',
-    onboarding: false,
-    crew_food_safety_quiz: 0,
-    mgr_food_safety_quiz: 0,
     new_hire_name: '',
     terminations: '',
     term_date: '',
@@ -215,14 +206,11 @@ function WeekendingSheetPage() {
       net_sales: Number(data.net_sales) || 0,
       discounts: Number(data.discounts) || 0,
       cash: Number(data.cash) || 0,
-      food_total: Number(data.food_total) || 0,
       food_cost: Number(data.food_cost) || 0,
       variance_dollars: Number(data.variance_dollars) || 0,
       food_variance_percentage: Number(data.food_variance_percentage) || 0,
       labor: Number(data.labor) || 0,
       credit_hours: Number(data.credit_hours) || 0,
-      crew_food_safety_quiz: Number(data.crew_food_safety_quiz) || 0,
-      mgr_food_safety_quiz: Number(data.mgr_food_safety_quiz) || 0,
       // Convert empty date strings to null for database compatibility
       term_date: data.term_date && data.term_date.trim() !== '' ? data.term_date : null,
     } as WeekendingSheetFormData & { term_date: string | null }
@@ -317,16 +305,12 @@ function WeekendingSheetPage() {
       net_sales: entry.net_sales || 0,
       discounts: entry.discounts || 0,
       cash: entry.cash || 0,
-      food_total: entry.food_total || 0,
       food_cost: entry.food_cost || 0,
       variance_dollars: entry.variance_dollars || 0,
       food_variance_percentage: entry.food_variance_percentage || 0,
       labor: entry.labor || 0,
       credit_hours: entry.credit_hours || 0,
       reason: entry.reason || '',
-      onboarding: entry.onboarding || false,
-      crew_food_safety_quiz: entry.crew_food_safety_quiz || 0,
-      mgr_food_safety_quiz: entry.mgr_food_safety_quiz || 0,
       new_hire_name: entry.new_hire_name || '',
       terminations: entry.terminations || '',
       term_date: entry.term_date || '',
@@ -354,16 +338,12 @@ function WeekendingSheetPage() {
       'Net Sales',
       'Discounts',
       'Cash',
-      'Food Total',
       'Food Cost',
       'Variance Dollars',
       'Food Variance %',
       'Labor',
       'Credit Hours',
       'Reason',
-      'Onboarding',
-      'Crew Food Safety Quiz',
-      'MGR Food Safety Quiz',
       'New Hire Name',
       'Terminations',
       'Term Date'
@@ -379,16 +359,12 @@ function WeekendingSheetPage() {
         entry.net_sales,
         entry.discounts,
         entry.cash,
-        entry.food_total,
         entry.food_cost,
         entry.variance_dollars,
         entry.food_variance_percentage,
         entry.labor,
         entry.credit_hours,
         entry.reason || '',
-        entry.onboarding ? 'Yes' : 'No',
-        entry.crew_food_safety_quiz,
-        entry.mgr_food_safety_quiz,
         entry.new_hire_name || '',
         entry.terminations || '',
         entry.term_date || ''
@@ -645,23 +621,6 @@ function WeekendingSheetPage() {
                     )}
                   </div>
 
-                  {/* Manager Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="manager_name">Manager Name</Label>
-                    <select
-                      id="manager_name"
-                      {...form.register('manager_name')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-wendys-red/20 focus:border-wendys-red"
-                    >
-                      <option value="Scott">Scott</option>
-                      <option value="Sophear">Sophear</option>
-                      <option value="Letoya">Letoya</option>
-                      <option value="Carissa">Carissa</option>
-                    </select>
-                    {form.formState.errors.manager_name && (
-                      <p className="text-sm text-red-600">{form.formState.errors.manager_name.message}</p>
-                    )}
-                  </div>
 
                   {/* Reason */}
                   <div className="space-y-2">
@@ -760,20 +719,6 @@ function WeekendingSheetPage() {
                     )}
                   </div>
 
-                  {/* Food Total */}
-                  <div className="space-y-2">
-                    <Label htmlFor="food_total">Food Total ($) - Can be negative</Label>
-                    <Input
-                      id="food_total"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      {...form.register('food_total')}
-                    />
-                    {form.formState.errors.food_total && (
-                      <p className="text-sm text-red-600">{form.formState.errors.food_total.message}</p>
-                    )}
-                  </div>
 
                   {/* Food Cost */}
                   <div className="space-y-2">
@@ -852,109 +797,52 @@ function WeekendingSheetPage() {
                 </div>
               </div>
 
-              {/* WeLearn Section */}
+              {/* Personnel Section */}
               <div className="form-section">
-                <button
-                  type="button"
-                  onClick={() => setWelearnExpanded(!welearnExpanded)}
-                  className="form-section-title w-full text-left flex items-center justify-between"
-                >
-                  <div className="flex items-center">
-                    <Users className="mr-2" />
-                    WeLearn & Training
+                <h3 className="form-section-title">
+                  <Users className="mr-2" />
+                  Personnel
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* New Hire Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="new_hire_name">New Hire Name</Label>
+                    <Input
+                      id="new_hire_name"
+                      placeholder="Optional"
+                      {...form.register('new_hire_name')}
+                    />
+                    {form.formState.errors.new_hire_name && (
+                      <p className="text-sm text-red-600">{form.formState.errors.new_hire_name.message}</p>
+                    )}
                   </div>
-                  {welearnExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                </button>
-                
-                {welearnExpanded && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    {/* Onboarding */}
-                    <div className="md:col-span-2 space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          id="onboarding"
-                          type="checkbox"
-                          {...form.register('onboarding')}
-                          className="h-4 w-4 text-wendys-red focus:ring-wendys-red border-gray-300 rounded"
-                        />
-                        <Label htmlFor="onboarding">Onboarding Completed</Label>
-                      </div>
-                    </div>
 
-                    {/* Crew Food Safety Quiz */}
-                    <div className="space-y-2">
-                      <Label htmlFor="crew_food_safety_quiz">Crew Food Safety Quiz Score</Label>
-                      <Input
-                        id="crew_food_safety_quiz"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                        placeholder="0-100"
-                        {...form.register('crew_food_safety_quiz')}
-                      />
-                      {form.formState.errors.crew_food_safety_quiz && (
-                        <p className="text-sm text-red-600">{form.formState.errors.crew_food_safety_quiz.message}</p>
-                      )}
-                    </div>
-
-                    {/* MGR Food Safety Quiz */}
-                    <div className="space-y-2">
-                      <Label htmlFor="mgr_food_safety_quiz">MGR Food Safety Quiz Score</Label>
-                      <Input
-                        id="mgr_food_safety_quiz"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                        placeholder="0-100"
-                        {...form.register('mgr_food_safety_quiz')}
-                      />
-                      {form.formState.errors.mgr_food_safety_quiz && (
-                        <p className="text-sm text-red-600">{form.formState.errors.mgr_food_safety_quiz.message}</p>
-                      )}
-                    </div>
-
-                    {/* New Hire Name */}
-                    <div className="space-y-2">
-                      <Label htmlFor="new_hire_name">New Hire Name</Label>
-                      <Input
-                        id="new_hire_name"
-                        placeholder="Optional"
-                        {...form.register('new_hire_name')}
-                      />
-                      {form.formState.errors.new_hire_name && (
-                        <p className="text-sm text-red-600">{form.formState.errors.new_hire_name.message}</p>
-                      )}
-                    </div>
-
-                    {/* Terminations */}
-                    <div className="space-y-2">
-                      <Label htmlFor="terminations">Terminations</Label>
-                      <Input
-                        id="terminations"
-                        placeholder="Optional"
-                        {...form.register('terminations')}
-                      />
-                      {form.formState.errors.terminations && (
-                        <p className="text-sm text-red-600">{form.formState.errors.terminations.message}</p>
-                      )}
-                    </div>
-
-                    {/* Term Date */}
-                    <div className="space-y-2">
-                      <Label htmlFor="term_date">Termination Date</Label>
-                      <Input
-                        id="term_date"
-                        type="date"
-                        {...form.register('term_date')}
-                      />
-                      {form.formState.errors.term_date && (
-                        <p className="text-sm text-red-600">{form.formState.errors.term_date.message}</p>
-                      )}
-                    </div>
+                  {/* Terminations */}
+                  <div className="space-y-2">
+                    <Label htmlFor="terminations">Terminations</Label>
+                    <Input
+                      id="terminations"
+                      placeholder="Optional"
+                      {...form.register('terminations')}
+                    />
+                    {form.formState.errors.terminations && (
+                      <p className="text-sm text-red-600">{form.formState.errors.terminations.message}</p>
+                    )}
                   </div>
-                )}
+
+                  {/* Term Date */}
+                  <div className="space-y-2">
+                    <Label htmlFor="term_date">Termination Date</Label>
+                    <Input
+                      id="term_date"
+                      type="date"
+                      {...form.register('term_date')}
+                    />
+                    {form.formState.errors.term_date && (
+                      <p className="text-sm text-red-600">{form.formState.errors.term_date.message}</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {!storeId && (

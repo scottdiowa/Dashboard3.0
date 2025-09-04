@@ -93,17 +93,13 @@ export const weekendingSheetSchema = z.object({
   net_sales: z.coerce.number().min(0, "Net sales must be positive"),
   discounts: z.coerce.number().default(0),
   cash: z.coerce.number().default(0),
-  food_total: z.coerce.number().default(0),
   food_cost: z.coerce.number().default(0),
   variance_dollars: z.coerce.number().default(0),
   food_variance_percentage: z.coerce.number().default(0),
   labor: z.coerce.number().min(0, "Labor must be positive"),
   credit_hours: z.coerce.number().min(0, "Credit hours must be positive"),
   reason: z.string().optional(),
-  // WeLearn section
-  onboarding: z.boolean().default(false),
-  crew_food_safety_quiz: z.coerce.number().min(0).max(100, "Score must be between 0-100"),
-  mgr_food_safety_quiz: z.coerce.number().min(0).max(100, "Score must be between 0-100"),
+  // Personnel section
   new_hire_name: z.string().optional(),
   terminations: z.string().optional(),
   term_date: z.string().optional(),
