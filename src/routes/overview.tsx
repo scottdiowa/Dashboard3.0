@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useMemo } from 'react'
 
-import { TrendingUp, TrendingDown, DollarSign, Clock } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Clock, Video, Settings } from 'lucide-react'
 
 import { OverviewKpiCard } from '@/components/overview/OverviewKpiCard'
 import { SalesTrendChart } from '@/components/overview/SalesTrendChart'
@@ -10,6 +10,7 @@ import { OsatSnapshot } from '@/components/overview/OsatSnapshot'
 import { InterviewsTodayList } from '@/components/overview/InterviewsTodayList'
 import { ChartCard } from '@/components/ui/chart-card'
 import { FilterToolbar, useFilters } from '@/components/ui/filter-toolbar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import { supabase } from '@/lib/supabase'
 import { useQuery } from '@tanstack/react-query'
@@ -21,11 +22,32 @@ export const Route = createFileRoute('/overview')({
 
 function OverviewPage() {
   const [storeId, setStoreId] = useState<string | null>(null)
+  const [selectedVideo, setSelectedVideo] = useState<string>('banner-video.mp4')
+
+  // Available video options
+  const videoOptions = [
+    { value: 'banner-video.mp4', label: 'Banner Video (Original)' },
+    { value: 'banner-video (2).mp4', label: 'Banner Video 2' },
+    { value: 'video-banner.mp4', label: 'Video Banner' },
+    { value: 'dashboard-8_30_2025, 8_58 PM.mp4', label: 'Dashboard Demo' },
+  ]
 
   // Use the new filter hook with persistence
   const filters = useFilters('overview', 'today')
 
+  // Load saved video selection from localStorage
+  useEffect(() => {
+    const savedVideo = localStorage.getItem('banner-video-selection')
+    if (savedVideo && videoOptions.some(option => option.value === savedVideo)) {
+      setSelectedVideo(savedVideo)
+    }
+  }, [])
 
+  // Save video selection to localStorage
+  const handleVideoChange = (videoValue: string) => {
+    setSelectedVideo(videoValue)
+    localStorage.setItem('banner-video-selection', videoValue)
+  }
 
   // Resolve store_id for current user
   useEffect(() => {
@@ -306,21 +328,41 @@ function OverviewPage() {
 
       {/* Video Banner */}
       <div className="wendys-card">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <Video className="h-5 w-5 text-wendys-red" />
+            <h3 className="text-lg font-semibold text-wendys-charcoal">Banner Video</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <Settings className="h-4 w-4 text-gray-500" />
+            <Select value={selectedVideo} onValueChange={handleVideoChange}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select video" />
+              </SelectTrigger>
+              <SelectContent>
+                {videoOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <div className="flex justify-center">
           <video 
+            key={selectedVideo} // Force re-render when video changes
             autoPlay 
             loop 
             muted 
             playsInline
-
             className="w-full rounded-lg shadow-lg opacity-60"
             style={{ height: '200px', objectFit: 'cover', width: '100%', pointerEvents: 'none' }}
           >
-            <source src="/banner-video.mp4" type="video/mp4" />
+            <source src={`/${selectedVideo}`} type="video/mp4" />
             <p>Your browser does not support the video tag.</p>
           </video>
         </div>
-
       </div>
 
       {/* KPI Cards Grid */}
