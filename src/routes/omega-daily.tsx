@@ -115,9 +115,10 @@ function OmegaDailyPage() {
   // Manual refresh function
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['omega_daily', storeId] })
+    queryClient.invalidateQueries({ queryKey: ['omega_daily_charts', storeId] })
     toast({
       title: 'Refreshing data...',
-      description: 'Reloading your OMEGA entries.',
+      description: 'Reloading your OMEGA entries and charts.',
     })
   }
 
@@ -261,6 +262,8 @@ function OmegaDailyPage() {
       form.reset()
       // Invalidate all omega_daily queries to ensure MTD cards update
       queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
+      // Also refresh charts to show the new data
+      queryClient.invalidateQueries({ queryKey: ['omega_daily_charts', storeId] })
     }
   })
 
@@ -291,6 +294,8 @@ function OmegaDailyPage() {
       form.reset()
       // Invalidate all omega_daily queries to ensure MTD cards update
       queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
+      // Also refresh charts to show the updated data
+      queryClient.invalidateQueries({ queryKey: ['omega_daily_charts', storeId] })
     },
     onError: (error: any) => {
       toast({ title: 'Update failed', description: error.message, variant: 'destructive' })
@@ -333,6 +338,8 @@ function OmegaDailyPage() {
       toast({ title: 'Deleted', description: 'Daily metrics entry removed.' })
       // Invalidate all omega_daily queries to ensure MTD cards update
       queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
+      // Also refresh charts to reflect the deletion
+      queryClient.invalidateQueries({ queryKey: ['omega_daily_charts', storeId] })
     },
     onError: (error: any) => {
       toast({ title: 'Delete failed', description: error.message, variant: 'destructive' })
@@ -1007,6 +1014,8 @@ function OmegaDailyPage() {
                                   title: 'Loaded existing data', 
                                   description: `Loaded data for ${formatDate(newDate)}.` 
                                 })
+                                // Refresh charts to reflect the new data
+                                queryClient.invalidateQueries({ queryKey: ['omega_daily_charts', storeId] })
                               } else {
                                 // Just change the date, keep current form data
                                 form.setValue('business_date', newDate)
@@ -1015,6 +1024,8 @@ function OmegaDailyPage() {
                                   title: 'Date changed', 
                                   description: `Changed date to ${formatDate(newDate)}. Your current data is preserved.` 
                                 })
+                                // Refresh charts to reflect the new date context
+                                queryClient.invalidateQueries({ queryKey: ['omega_daily_charts', storeId] })
                               }
                             } else {
                               // No existing data, just change the date
@@ -1024,6 +1035,8 @@ function OmegaDailyPage() {
                                 title: 'Date changed', 
                                 description: `Changed date to ${formatDate(newDate)}. Your data is preserved.` 
                               })
+                              // Refresh charts to reflect the new date context
+                              queryClient.invalidateQueries({ queryKey: ['omega_daily_charts', storeId] })
                             }
                           } else {
                             toast({ 
