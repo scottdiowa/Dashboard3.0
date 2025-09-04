@@ -1,8 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { Video, Settings as SettingsIcon, Monitor, Palette, Database } from 'lucide-react'
+import { Video, Settings as SettingsIcon, Monitor, Palette, Database, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { VideoManager } from '@/components/overview/VideoManager'
 import { type VideoFile } from '@/lib/video-manager'
+import { SettingsPasswordProtection } from '@/components/SettingsPasswordProtection'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,
@@ -11,12 +16,31 @@ export const Route = createFileRoute('/settings')({
 function SettingsPage() {
   const [selectedVideo, setSelectedVideo] = useState<string>('banner-video.mp4')
   const [availableVideos, setAvailableVideos] = useState<VideoFile[]>([])
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [settingsPassword, setSettingsPassword] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const { toast } = useToast()
 
-  // Load saved video selection from localStorage
+  // Load saved video selection and settings password from localStorage
   useEffect(() => {
     const savedVideo = localStorage.getItem('banner-video-selection')
     if (savedVideo) {
       setSelectedVideo(savedVideo)
+    }
+    
+    const savedPassword = localStorage.getItem('settings-password')
+    if (savedPassword) {
+      setSettingsPassword(savedPassword)
+    } else {
+      // Set default password if none exists
+      const defaultPassword = 'admin123'
+      setSettingsPassword(defaultPassword)
+      localStorage.setItem('settings-password', defaultPassword)
     }
   }, [])
 
@@ -38,15 +62,70 @@ function SettingsPage() {
     }
   }
 
+  // Handle authentication
+  const handleAuthenticated = () => {
+    setIsAuthenticated(true)
+  }
+
+  // Handle password change
+  const handlePasswordChange = (newPassword: string) => {
+    setSettingsPassword(newPassword)
+    localStorage.setItem('settings-password', newPassword)
+  }
+
+  // Handle password change within settings
+  const handlePasswordUpdate = () => {
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.')
+      return
+    }
+    
+    if (newPassword.length < 4) {
+      setPasswordError('Password must be at least 4 characters long.')
+      return
+    }
+
+    setSettingsPassword(newPassword)
+    localStorage.setItem('settings-password', newPassword)
+    setNewPassword('')
+    setConfirmPassword('')
+    setIsChangingPassword(false)
+    setPasswordError('')
+    toast({
+      title: "Password Updated",
+      description: "Settings password has been changed successfully.",
+    })
+  }
+
+  // Show password protection if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <SettingsPasswordProtection
+        onAuthenticated={handleAuthenticated}
+        onPasswordChange={handlePasswordChange}
+        currentPassword={settingsPassword}
+      />
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <SettingsIcon className="h-8 w-8 text-wendys-red" />
-        <div>
-          <h1 className="text-2xl font-bold text-wendys-charcoal">Settings</h1>
-          <p className="text-gray-600">Configure your dashboard preferences and appearance</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <SettingsIcon className="h-8 w-8 text-wendys-red" />
+          <div>
+            <h1 className="text-2xl font-bold text-wendys-charcoal">Settings</h1>
+            <p className="text-gray-600">Configure your dashboard preferences and appearance</p>
+          </div>
         </div>
+        <Button
+          onClick={() => setIsAuthenticated(false)}
+          variant="outline"
+          className="text-wendys-red border-wendys-red hover:bg-wendys-red hover:text-white"
+        >
+          Lock Settings
+        </Button>
       </div>
 
       {/* Settings Sections */}
@@ -155,6 +234,120 @@ function SettingsPage() {
       {/* Additional Settings Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
+        {/* Password Management */}
+        <div className="wendys-card">
+          <div className="flex items-center gap-2 mb-4">
+            <Lock className="h-5 w-5 text-wendys-red" />
+            <h3 className="text-lg font-semibold text-wendys-charcoal">Password Management</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Change the password required to access the settings page.
+          </p>
+          
+          {!isChangingPassword ? (
+            <div className="space-y-3">
+              <div className="text-sm text-gray-500">
+                <p>• Current password is set and active</p>
+                <p>• Password protects access to all settings</p>
+                <p>• Click below to change the password</p>
+              </div>
+              <Button
+                onClick={() => setIsChangingPassword(true)}
+                className="wendys-button"
+              >
+                Change Password
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword" className="text-wendys-charcoal font-medium">
+                  New Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="newPassword"
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Enter new password"
+                    className="pl-10 pr-10"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-wendys-charcoal font-medium">
+                  Confirm New Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm new password"
+                    className="pl-10 pr-10"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {passwordError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handlePasswordUpdate}
+                  className="flex-1 wendys-button"
+                  disabled={!newPassword.trim() || !confirmPassword.trim()}
+                >
+                  Update Password
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsChangingPassword(false)
+                    setPasswordError('')
+                    setNewPassword('')
+                    setConfirmPassword('')
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Appearance Settings */}
         <div className="wendys-card">
           <div className="flex items-center gap-2 mb-4">
@@ -172,22 +365,22 @@ function SettingsPage() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Data Settings */}
-        <div className="wendys-card">
-          <div className="flex items-center gap-2 mb-4">
-            <Database className="h-5 w-5 text-wendys-red" />
-            <h3 className="text-lg font-semibold text-wendys-charcoal">Data Management</h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            Manage your data and storage preferences.
-          </p>
-          <div className="space-y-3">
-            <div className="text-sm text-gray-500">
-              <p>• Data export options (coming soon)</p>
-              <p>• Backup and restore (coming soon)</p>
-              <p>• Cache management (coming soon)</p>
-            </div>
+      {/* Data Settings */}
+      <div className="wendys-card">
+        <div className="flex items-center gap-2 mb-4">
+          <Database className="h-5 w-5 text-wendys-red" />
+          <h3 className="text-lg font-semibold text-wendys-charcoal">Data Management</h3>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Manage your data and storage preferences.
+        </p>
+        <div className="space-y-3">
+          <div className="text-sm text-gray-500">
+            <p>• Data export options (coming soon)</p>
+            <p>• Backup and restore (coming soon)</p>
+            <p>• Cache management (coming soon)</p>
           </div>
         </div>
       </div>
