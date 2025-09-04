@@ -952,9 +952,101 @@ function OmegaDailyPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-lg md:text-xl font-semibold text-wendys-charcoal">
-                {editingEntry ? 'Edit Daily Entry' : 'Add Daily Entry'}
-              </h2>
+              <div className="flex items-center space-x-3">
+                <h2 className="text-lg md:text-xl font-semibold text-wendys-charcoal">
+                  {editingEntry ? 'Edit Daily Entry' : 'Add Daily Entry'}
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const currentDate = form.watch('business_date')
+                    if (currentDate) {
+                      // Check if there's existing data for the current date
+                      const existingForCurrentDate = omegaEntries.find(e => e.business_date === currentDate)
+                      const hasFormData = Object.values(form.getValues()).some(value => 
+                        typeof value === 'number' ? value !== 0 : value !== '' && value !== null
+                      )
+                      
+                      let confirmMessage = `Current date: ${formatDate(currentDate)}\n\n`
+                      if (existingForCurrentDate) {
+                        confirmMessage += `⚠️ There's already saved data for this date.\n\n`
+                      }
+                      if (hasFormData) {
+                        confirmMessage += `📝 You have unsaved changes in the form.\n\n`
+                      }
+                      confirmMessage += `Enter new date (YYYY-MM-DD):`
+                      
+                      const newDate = prompt(confirmMessage, currentDate)
+                      if (newDate && newDate !== currentDate) {
+                        // Validate date format
+                        const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+                        if (dateRegex.test(newDate)) {
+                          const dateObj = new Date(newDate)
+                          if (!isNaN(dateObj.getTime())) {
+                            // Check if there's existing data for the new date
+                            const existingForNewDate = omegaEntries.find(e => e.business_date === newDate)
+                            if (existingForNewDate) {
+                              const overwrite = confirm(`There's already data for ${formatDate(newDate)}.\n\nDo you want to load that data instead? (This will replace your current form data)`)
+                              if (overwrite) {
+                                setEditingEntry(existingForNewDate)
+                                form.reset({
+                                  business_date: existingForNewDate.business_date,
+                                  net_sales: existingForNewDate.net_sales != null ? Number(existingForNewDate.net_sales) : 0,
+                                  last_year_sales: existingForNewDate.last_year_sales != null ? Number(existingForNewDate.last_year_sales) : 0,
+                                  labor_hours: existingForNewDate.labor_hours != null ? Number(existingForNewDate.labor_hours) : 0,
+                                  ideal_labor_hours: existingForNewDate.ideal_labor_hours != null ? Number(existingForNewDate.ideal_labor_hours) : 0,
+                                  labor_percentage: existingForNewDate.labor_percentage != null ? Number(existingForNewDate.labor_percentage) : 0,
+                                  theoretical_food_cost: existingForNewDate.theoretical_food_cost != null ? Number(existingForNewDate.theoretical_food_cost) : 0,
+                                  food_variance_cost: existingForNewDate.food_variance_cost != null ? Number(existingForNewDate.food_variance_cost) : 0,
+                                  waste_amount: existingForNewDate.waste_amount != null ? Number(existingForNewDate.waste_amount) : 0,
+                                  breakfast_sales: existingForNewDate.breakfast_sales != null ? Number(existingForNewDate.breakfast_sales) : 0,
+                                  night_sales: existingForNewDate.night_sales != null ? Number(existingForNewDate.night_sales) : 0,
+                                })
+                                toast({ 
+                                  title: 'Loaded existing data', 
+                                  description: `Loaded data for ${formatDate(newDate)}.` 
+                                })
+                              } else {
+                                // Just change the date, keep current form data
+                                form.setValue('business_date', newDate)
+                                setEditingEntry(null)
+                                toast({ 
+                                  title: 'Date changed', 
+                                  description: `Changed date to ${formatDate(newDate)}. Your current data is preserved.` 
+                                })
+                              }
+                            } else {
+                              // No existing data, just change the date
+                              form.setValue('business_date', newDate)
+                              setEditingEntry(null)
+                              toast({ 
+                                title: 'Date changed', 
+                                description: `Changed date to ${formatDate(newDate)}. Your data is preserved.` 
+                              })
+                            }
+                          } else {
+                            toast({ 
+                              title: 'Invalid date', 
+                              description: 'Please enter a valid date in YYYY-MM-DD format.', 
+                              variant: 'destructive' 
+                            })
+                          }
+                        } else {
+                          toast({ 
+                            title: 'Invalid format', 
+                            description: 'Please enter date in YYYY-MM-DD format.', 
+                            variant: 'destructive' 
+                          })
+                        }
+                      }
+                    }
+                  }}
+                  className="text-xs border-wendys-red text-wendys-red hover:bg-wendys-red hover:text-white"
+                >
+                  📅 Change Date
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -1009,38 +1101,14 @@ function OmegaDailyPage() {
                         onSelect={(date) => {
                           const iso = date ? format(date, 'yyyy-MM-dd') : ''
                           form.setValue('business_date', iso)
+                          // Only show a notification if there's existing data for this date
                           if (iso) {
                             const existing = omegaEntries.find(e => e.business_date === iso)
                             if (existing) {
-                              setEditingEntry(existing)
-                              form.reset({
-                                business_date: existing.business_date,
-                                net_sales: existing.net_sales != null ? Number(existing.net_sales) : 0,
-                                last_year_sales: existing.last_year_sales != null ? Number(existing.last_year_sales) : 0,
-                                labor_hours: existing.labor_hours != null ? Number(existing.labor_hours) : 0,
-                                ideal_labor_hours: existing.ideal_labor_hours != null ? Number(existing.ideal_labor_hours) : 0,
-                                labor_percentage: existing.labor_percentage != null ? Number(existing.labor_percentage) : 0,
-                                theoretical_food_cost: existing.theoretical_food_cost != null ? Number(existing.theoretical_food_cost) : 0,
-                                food_variance_cost: existing.food_variance_cost != null ? Number(existing.food_variance_cost) : 0,
-                                waste_amount: existing.waste_amount != null ? Number(existing.waste_amount) : 0,
-                                breakfast_sales: existing.breakfast_sales != null ? Number(existing.breakfast_sales) : 0,
-                                night_sales: existing.night_sales != null ? Number(existing.night_sales) : 0,
-                              })
-                              toast({ title: 'Loaded existing entry', description: `Loaded data for ${formatDate(existing.business_date)} to edit.` })
-                            } else {
-                              setEditingEntry(null)
-                              form.reset({
-                                business_date: iso,
-                                net_sales: 0,
-                                last_year_sales: 0,
-                                labor_hours: 0,
-                                ideal_labor_hours: 0,
-                                labor_percentage: 0,
-                                theoretical_food_cost: 0,
-                                food_variance_cost: 0,
-                                waste_amount: 0,
-                                breakfast_sales: 0,
-                                night_sales: 0,
+                              toast({ 
+                                title: 'Existing entry found', 
+                                description: `There's already data for ${formatDate(iso)}. Use "Change Date" button to switch dates while keeping your current data.`,
+                                variant: 'default'
                               })
                             }
                           }
