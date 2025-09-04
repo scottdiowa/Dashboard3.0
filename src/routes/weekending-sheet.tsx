@@ -190,7 +190,9 @@ function WeekendingSheetPage() {
       credit_hours: Number(data.credit_hours) || 0,
       crew_food_safety_quiz: Number(data.crew_food_safety_quiz) || 0,
       mgr_food_safety_quiz: Number(data.mgr_food_safety_quiz) || 0,
-    }
+      // Convert empty date strings to null for database compatibility
+      term_date: data.term_date && data.term_date.trim() !== '' ? data.term_date : null,
+    } as WeekendingSheetFormData & { term_date: string | null }
 
     if (editingEntry) {
       updateMutation.mutate({ id: editingEntry.id, payload: processedData })
