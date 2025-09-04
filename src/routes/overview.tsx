@@ -113,6 +113,11 @@ function OverviewPage() {
         dateRangeFilter,
         queryKey: ['overview-weekending', storeId, dateRangeFilter?.start, dateRangeFilter?.end]
       })
+      console.log('📊 Date range details:', {
+        start: dateRangeFilter?.start,
+        end: dateRangeFilter?.end,
+        hasFilter: !!dateRangeFilter
+      })
 
       let query = supabase
         .from('weekending_sheet')
