@@ -101,7 +101,7 @@ function OmegaDailyPage() {
       })
 
       // Invalidate and refetch data
-      queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
+      queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
 
     } catch (error: any) {
       toast({
@@ -259,8 +259,8 @@ function OmegaDailyPage() {
       setIsFormOpen(false)
       setEditingEntry(null)
       form.reset()
-      // Optionally refresh to ensure all views are consistent
-      // queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
+      // Invalidate all omega_daily queries to ensure MTD cards update
+      queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
     }
   })
 
@@ -289,7 +289,8 @@ function OmegaDailyPage() {
       setIsFormOpen(false)
       setEditingEntry(null)
       form.reset()
-      queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
+      // Invalidate all omega_daily queries to ensure MTD cards update
+      queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
     },
     onError: (error: any) => {
       toast({ title: 'Update failed', description: error.message, variant: 'destructive' })
@@ -330,7 +331,8 @@ function OmegaDailyPage() {
     },
     onSuccess: () => {
       toast({ title: 'Deleted', description: 'Daily metrics entry removed.' })
-      queryClient.invalidateQueries({ queryKey: ['omega_daily', 'last30', storeId] })
+      // Invalidate all omega_daily queries to ensure MTD cards update
+      queryClient.invalidateQueries({ queryKey: ['omega_daily'] })
     },
     onError: (error: any) => {
       toast({ title: 'Delete failed', description: error.message, variant: 'destructive' })
