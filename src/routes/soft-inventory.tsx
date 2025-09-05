@@ -447,7 +447,9 @@ function SoftInventoryPage() {
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    {...form.register(item.key as keyof SoftInventoryVarianceFormData)}
+                    {...form.register(item.key as keyof SoftInventoryVarianceFormData, {
+                      setValueAs: (value) => value === '' ? 0 : parseFloat(value)
+                    })}
                     className={form.formState.errors[item.key as keyof typeof form.formState.errors] ? 'border-red-500' : ''}
                   />
                   {form.formState.errors[item.key as keyof typeof form.formState.errors] && (
@@ -456,7 +458,7 @@ function SoftInventoryPage() {
                     </p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
-                    Enter positive for overage, negative for shortage
+                    Enter positive for overage, negative for shortage (e.g., -66.38)
                   </p>
                 </div>
               ))}
