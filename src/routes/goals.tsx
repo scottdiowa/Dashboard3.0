@@ -396,7 +396,7 @@ export function GoalsPage() {
 
   // Enhanced goal metrics with pacing, trends, and insights
   const goalMetrics = useMemo(() => {
-    const formValues = form.getValues()
+    const formValues = form.watch()
 
     // Calculate historical benchmarks
     const getHistoricalValue = (data: OmegaDailyRow[], isPercentage = false) => {
@@ -421,18 +421,24 @@ export function GoalsPage() {
     const salesStatus = calculateGoalStatus(actuals.totalSales, formValues.sales_target, false)
     const salesTrend = calculateTrend(actuals.totalSales, historical.lastWeek)
     
-    // Labor metrics
-    const laborProgress = formValues.labor_target_pct > 0 ? (actuals.avgLaborPct / formValues.labor_target_pct) * 100 : 0
+    // Labor metrics (for percentage goals, show how close to target, not how much exceeded)
+    const laborProgress = formValues.labor_target_pct > 0 
+      ? Math.max(0, Math.min(100, (formValues.labor_target_pct / actuals.avgLaborPct) * 100))
+      : 0
     const laborStatus = calculateGoalStatus(actuals.avgLaborPct, formValues.labor_target_pct, true)
     const laborTrend = calculateTrend(actuals.avgLaborPct, historical.lastWeek)
     
-    // Waste metrics
-    const wasteProgress = formValues.waste_target_pct > 0 ? (actuals.wastePct / formValues.waste_target_pct) * 100 : 0
+    // Waste metrics (for percentage goals, show how close to target, not how much exceeded)
+    const wasteProgress = formValues.waste_target_pct > 0 
+      ? Math.max(0, Math.min(100, (formValues.waste_target_pct / actuals.wastePct) * 100))
+      : 0
     const wasteStatus = calculateGoalStatus(actuals.wastePct, formValues.waste_target_pct, true)
     const wasteTrend = calculateTrend(actuals.wastePct, historical.lastWeek)
     
-    // Food variance metrics
-    const foodVarProgress = formValues.food_variance_target_pct > 0 ? (actuals.foodVarPct / formValues.food_variance_target_pct) * 100 : 0
+    // Food variance metrics (for percentage goals, show how close to target, not how much exceeded)
+    const foodVarProgress = formValues.food_variance_target_pct > 0 
+      ? Math.max(0, Math.min(100, (formValues.food_variance_target_pct / actuals.foodVarPct) * 100))
+      : 0
     const foodVarStatus = calculateGoalStatus(actuals.foodVarPct, formValues.food_variance_target_pct, true)
     const foodVarTrend = calculateTrend(actuals.foodVarPct, historical.lastWeek)
 
