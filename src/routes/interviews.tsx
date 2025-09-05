@@ -462,7 +462,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
   // Check if calendar_events table exists
   const checkCalendarTable = async () => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('calendar_events')
         .select('id')
         .limit(1)
@@ -498,7 +498,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
   // Check if storage bucket exists
   const checkStorageBucket = async () => {
     try {
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('interview-attachments')
         .list('', { limit: 1 })
 
@@ -674,9 +674,10 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
 
     } catch (error) {
       console.error('❌ Test failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       toast({ 
         title: 'Test Failed', 
-        description: `Test error: ${error.message}`, 
+        description: `Test error: ${errorMessage}`, 
         variant: 'destructive' 
       })
     }
@@ -696,7 +697,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
       
       // Check if interview_attachments table exists
       console.log('📋 Checking interview_attachments table...')
-      const { data: tableCheck, error: tableError } = await supabase
+      const { error: tableError } = await supabase
         .from('interview_attachments')
         .select('id')
         .limit(1)
@@ -1121,7 +1122,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
               
               // Refresh interviews to show the new attachments
               console.log('🔄 Refreshing interviews to show attachments...')
-              await refetch()
+              await fetchInterviews(storeId)
             } catch (uploadError) {
               console.error('❌ File upload failed:', uploadError)
               toast({ 
