@@ -354,6 +354,11 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
 
         if (dbError) {
           console.error('❌ Database insert error:', dbError)
+          console.error('❌ Full error details:', JSON.stringify(dbError, null, 2))
+          console.error('❌ Error code:', dbError.code)
+          console.error('❌ Error message:', dbError.message)
+          console.error('❌ Error details:', dbError.details)
+          console.error('❌ Error hint:', dbError.hint)
           throw dbError
         }
 
