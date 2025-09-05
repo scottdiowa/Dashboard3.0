@@ -545,6 +545,101 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
   }
 
+  // Simple test to create a test attachment
+  const testAttachmentUpload = async () => {
+    if (!storeId || !userId) {
+      toast({ title: 'Error', description: 'Store ID or User ID not available', variant: 'destructive' })
+      return
+    }
+
+    try {
+      console.log('🧪 Testing attachment upload...')
+      
+      // Create a simple test file
+      const testContent = 'This is a test file for attachment upload'
+      const testFile = new File([testContent], 'test-file.txt', { type: 'text/plain' })
+      
+      console.log('📁 Test file created:', testFile.name, testFile.size, 'bytes')
+      
+      // Test storage upload
+      const testPath = `test-uploads/test-${Date.now()}.txt`
+      console.log('📤 Uploading to storage path:', testPath)
+      
+      const { error: storageError } = await supabase.storage
+        .from('interview-attachments')
+        .upload(testPath, testFile)
+
+      if (storageError) {
+        console.error('❌ Storage upload failed:', storageError)
+        toast({ 
+          title: 'Storage Test Failed', 
+          description: `Storage error: ${storageError.message}`, 
+          variant: 'destructive' 
+        })
+        return
+      }
+
+      console.log('✅ Storage upload successful')
+
+      // Test database insert
+      const testAttachmentData = {
+        interview_id: '00000000-0000-0000-0000-000000000000', // Dummy ID
+        store_id: storeId,
+        file_name: testFile.name,
+        file_path: testPath,
+        file_size: testFile.size,
+        file_type: testFile.type,
+        uploaded_by: userId
+      }
+
+      console.log('💾 Testing database insert:', testAttachmentData)
+
+      const { data: attachment, error: dbError } = await supabase
+        .from('interview_attachments')
+        .insert([testAttachmentData])
+        .select()
+        .single()
+
+      if (dbError) {
+        console.error('❌ Database insert failed:', dbError)
+        toast({ 
+          title: 'Database Test Failed', 
+          description: `Database error: ${dbError.message}`, 
+          variant: 'destructive' 
+        })
+        return
+      }
+
+      console.log('✅ Database insert successful:', attachment)
+
+      // Clean up test data
+      await supabase.storage
+        .from('interview-attachments')
+        .remove([testPath])
+
+      await supabase
+        .from('interview_attachments')
+        .delete()
+        .eq('id', attachment.id)
+
+      console.log('🧹 Test data cleaned up')
+
+      toast({ 
+        title: 'Test Successful!', 
+        description: 'Both storage and database are working correctly', 
+        variant: 'default' 
+      })
+
+    } catch (error) {
+      console.error('❌ Test failed:', error)
+      toast({ 
+        title: 'Test Failed', 
+        description: `Test error: ${error.message}`, 
+        variant: 'destructive' 
+      })
+    }
+  }
+
   // Debug function to check attachments
   const debugAttachments = async () => {
     if (!storeId) {
@@ -1509,6 +1604,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                     className="text-xs"
                   >
                     Force Refresh
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={testAttachmentUpload}
+                    className="text-xs"
+                  >
+                    Test Upload
                   </Button>
                 </div>
 
