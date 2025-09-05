@@ -356,6 +356,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         }
 
         console.log('💾 Creating database record:', attachmentData)
+        console.log('💾 Database record details:')
+        console.log('  - interview_id:', interviewId)
+        console.log('  - store_id:', storeId)
+        console.log('  - file_name:', upload.file.name)
+        console.log('  - file_path:', filePath)
+        console.log('  - file_size:', upload.file.size)
+        console.log('  - file_type:', upload.file.type)
+        console.log('  - uploaded_by:', userId)
 
         const { data: attachment, error: dbError } = await supabase
           .from('interview_attachments')
@@ -374,6 +382,8 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         }
 
         console.log('✅ Database record created:', attachment)
+        console.log('✅ Database record ID:', attachment.id)
+        console.log('✅ Database record file_path:', attachment.file_path)
         uploadedAttachments.push(attachment)
       } catch (error) {
         console.error('❌ Error uploading file:', upload.file.name, error)
