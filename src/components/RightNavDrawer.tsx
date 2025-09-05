@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, MessageSquare, FileText, Settings, Package } from 'lucide-react'
+import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, MessageSquare, FileText, Settings, Package, ChevronDown, ChevronRight } from 'lucide-react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useState, useMemo, forwardRef } from 'react'
@@ -11,86 +11,105 @@ interface RightNavDrawerProps {
   onClose: () => void
 }
 
-const navigationItems = [
+// Define navigation categories with better organization
+const navigationCategories = [
   {
-    name: 'Overview',
-    href: '/overview',
+    id: 'dashboard',
+    name: 'Dashboard & Analytics',
     icon: BarChart3,
-    description: 'Key metrics and trends',
-    category: 'main',
-    priority: 'high'
+    items: [
+      {
+        name: 'Overview',
+        href: '/overview',
+        icon: BarChart3,
+        description: 'Key metrics and trends',
+        priority: 'high'
+      },
+      {
+        name: 'Omega Daily',
+        href: '/omega-daily',
+        icon: TrendingUp,
+        description: 'Daily business metrics',
+        priority: 'high'
+      },
+      {
+        name: 'Weekending Sheet',
+        href: '/weekending-sheet',
+        icon: FileText,
+        description: 'Weekly operational data',
+        priority: 'high'
+      }
+    ]
   },
   {
-    name: 'Omega Daily',
-    href: '/omega-daily',
-    icon: TrendingUp,
-    description: 'Daily business metrics',
-    category: 'main',
-    priority: 'high'
-  },
-  {
-    name: 'Weekending Sheet',
-    href: '/weekending-sheet',
-    icon: FileText,
-    description: 'Weekly operational data',
-    category: 'main',
-    priority: 'high'
-  },
-  {
-    name: 'Calendar',
-    href: '/calendar',
+    id: 'operations',
+    name: 'Operations',
     icon: Calendar,
-    description: 'Events and reminders',
-    category: 'main',
-    priority: 'medium'
+    items: [
+      {
+        name: 'Calendar',
+        href: '/calendar',
+        icon: Calendar,
+        description: 'Events and reminders',
+        priority: 'medium'
+      },
+      {
+        name: 'Interviews & Hires',
+        href: '/interviews',
+        icon: Users,
+        description: 'Manage candidates and hiring',
+        priority: 'medium'
+      },
+      {
+        name: 'Soft Inventory',
+        href: '/soft-inventory',
+        icon: Package,
+        description: 'Track variance percentages',
+        priority: 'medium'
+      }
+    ]
   },
   {
-    name: 'Interviews & Hires',
-    href: '/interviews',
-    icon: Users,
-    description: 'Manage candidates and hiring',
-    category: 'main',
-    priority: 'medium'
-  },
-  {
-    name: 'OSAT',
-    href: '/smg',
-    icon: MessageSquare,
-    description: 'Customer feedback metrics',
-    category: 'main',
-    priority: 'medium'
-  },
-  {
-    name: 'Soft Inventory',
-    href: '/soft-inventory',
-    icon: Package,
-    description: 'Track variance percentages',
-    category: 'main',
-    priority: 'medium'
-  },
-  {
-    name: 'Goal Setting',
-    href: '/goals',
+    id: 'performance',
+    name: 'Performance & Goals',
     icon: Target,
-    description: 'Set goals & track progress',
-    category: 'main',
-    priority: 'medium'
+    items: [
+      {
+        name: 'OSAT',
+        href: '/smg',
+        icon: MessageSquare,
+        description: 'Customer feedback metrics',
+        priority: 'medium'
+      },
+      {
+        name: 'Goal Setting',
+        href: '/goals',
+        icon: Target,
+        description: 'Set goals & track progress',
+        priority: 'medium'
+      }
+    ]
   },
   {
-    name: 'Settings',
-    href: '/settings',
+    id: 'system',
+    name: 'System',
     icon: Settings,
-    description: 'Configure dashboard preferences',
-    category: 'main',
-    priority: 'medium'
-  },
-  {
-    name: 'Setup',
-    href: '/setup',
-    icon: Wrench,
-    description: 'Copy SQL & configure',
-    category: 'main',
-    priority: 'low'
+    items: [
+      {
+        name: 'Settings',
+        href: '/settings',
+        icon: Settings,
+        description: 'Configure dashboard preferences',
+        priority: 'low'
+      },
+      {
+        name: 'Setup',
+        href: '/setup',
+        icon: Wrench,
+        description: 'Copy SQL & configure',
+        priority: 'low'
+      }
+    ]
   }
 ]
 
@@ -99,22 +118,117 @@ export const RightNavDrawer = forwardRef<HTMLDivElement, RightNavDrawerProps>(
     const location = useLocation()
     const [searchQuery, setSearchQuery] = useState('')
     const [showTooltip, setShowTooltip] = useState<string | null>(null)
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['dashboard', 'operations']))
+
+    // Flatten all items for search
+    const allItems = useMemo(() => {
+      return navigationCategories.flatMap(category => 
+        category.items.map(item => ({ ...item, categoryId: category.id, categoryName: category.name }))
+      )
+    }, [])
 
     // Filter navigation items based on search
     const filteredItems = useMemo(() => {
-      if (!searchQuery.trim()) return navigationItems
+      if (!searchQuery.trim()) return allItems
       
       const query = searchQuery.toLowerCase()
-      return navigationItems.filter(item => 
+      return allItems.filter(item => 
         item.name.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query)
+        item.description.toLowerCase().includes(query) ||
+        item.categoryName.toLowerCase().includes(query)
       )
-    }, [searchQuery])
+    }, [searchQuery, allItems])
+
 
     const handleNavClick = () => {
       if (isMobile) {
         onClose()
       }
+    }
+
+    const toggleCategory = (categoryId: string) => {
+      setExpandedCategories(prev => {
+        const newSet = new Set(prev)
+        if (newSet.has(categoryId)) {
+          newSet.delete(categoryId)
+        } else {
+          newSet.add(categoryId)
+        }
+        return newSet
+      })
+    }
+
+    const renderNavigationItem = (item: any, isSearchMode: boolean = false) => {
+      const isActive = location.pathname === item.href
+      const Icon = item.icon
+      
+      return (
+        <div key={item.href} className="relative">
+          <Link
+            to={item.href}
+            className={cn(
+              "flex items-center transition-all duration-200 group relative",
+              open 
+                ? "space-x-3 p-3 rounded-lg mx-0" 
+                : "justify-center p-3 rounded-lg mx-1",
+              isActive 
+                ? "bg-gradient-to-r from-wendys-red to-wendys-dark-red text-white shadow-lg ring-1 ring-red-200" 
+                : "text-gray-700 hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-gray-200",
+              isSearchMode && open && "ml-4" // Indent in search mode
+            )}
+            onMouseEnter={() => !open && setShowTooltip(item.href)}
+            onMouseLeave={() => !open && setShowTooltip(null)}
+            onClick={handleNavClick}
+          >
+            {/* Icon Container */}
+            <div className={cn(
+              "flex-shrink-0 p-2 rounded-lg transition-all duration-200",
+              isActive 
+                ? "bg-white/20" 
+                : "bg-gray-100 group-hover:bg-wendys-red/10 group-hover:scale-110"
+            )}>
+              <Icon className={cn(
+                "h-5 w-5 transition-colors duration-200",
+                isActive ? "text-white" : "text-gray-600 group-hover:text-wendys-red"
+              )} />
+            </div>
+            
+            {/* Text Content - Only show when expanded */}
+            {open && (
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <div className={cn(
+                    "font-semibold text-sm",
+                    isActive ? "text-white" : "text-gray-800"
+                  )}>
+                    {item.name}
+                  </div>
+                  {item.priority === 'high' && (
+                    <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                  )}
+                </div>
+                <div className={cn(
+                  "text-xs mt-1",
+                  isActive ? "text-red-100" : "text-gray-500"
+                )}>
+                  {item.description}
+                </div>
+              </div>
+            )}
+          </Link>
+
+          {/* Tooltip for collapsed state */}
+          {!open && showTooltip === item.href && (
+            <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 z-50">
+              <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                <div className="font-medium">{item.name}</div>
+                <div className="text-gray-300 text-xs mt-1">{item.description}</div>
+                <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+              </div>
+            </div>
+          )}
+        </div>
+      )
     }
 
     if (isMobile) {
@@ -161,58 +275,30 @@ export const RightNavDrawer = forwardRef<HTMLDivElement, RightNavDrawerProps>(
 
             {/* Navigation Items */}
             <nav className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-2">
-                {filteredItems.map((item) => {
-                  const isActive = location.pathname === item.href
-                  const Icon = item.icon
-                  
-                  return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      onClick={handleNavClick}
-                      className={cn(
-                        "flex items-center space-x-3 p-4 rounded-lg transition-all duration-200 tap",
-                        isActive 
-                          ? "bg-gradient-to-r from-wendys-red to-wendys-dark-red text-white shadow-lg" 
-                          : "text-gray-700 hover:bg-gray-50"
-                      )}
-                    >
-                      <div className={cn(
-                        "flex-shrink-0 p-2 rounded-lg",
-                        isActive 
-                          ? "bg-white/20" 
-                          : "bg-gray-100"
-                      )}>
-                        <Icon className={cn(
-                          "h-5 w-5",
-                          isActive ? "text-white" : "text-gray-600"
-                        )} />
+              {searchQuery.trim() ? (
+                // Search mode - show flat list
+                <div className="space-y-2">
+                  {filteredItems.map((item) => renderNavigationItem(item, true))}
+                </div>
+              ) : (
+                // Normal mode - show categorized
+                <div className="space-y-4">
+                  {navigationCategories.map((category) => (
+                    <div key={category.id} className="space-y-2">
+                      {/* Category Header */}
+                      <div className="flex items-center space-x-2 text-gray-500 text-xs font-medium uppercase tracking-wider">
+                        <category.icon className="h-4 w-4" />
+                        <span>{category.name}</span>
                       </div>
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <div className={cn(
-                            "font-semibold text-sm",
-                            isActive ? "text-white" : "text-gray-800"
-                          )}>
-                            {item.name}
-                          </div>
-                          {item.priority === 'high' && (
-                            <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                          )}
-                        </div>
-                        <div className={cn(
-                          "text-xs mt-1",
-                          isActive ? "text-red-100" : "text-gray-500"
-                        )}>
-                          {item.description}
-                        </div>
+                      {/* Category Items */}
+                      <div className="space-y-1">
+                        {category.items.map((item) => renderNavigationItem(item))}
                       </div>
-                    </Link>
-                  )
-                })}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* No Results Message */}
               {searchQuery.trim() && filteredItems.length === 0 && (
@@ -267,79 +353,46 @@ export const RightNavDrawer = forwardRef<HTMLDivElement, RightNavDrawerProps>(
             open ? "p-4" : "p-2"
           )}>
             
-            {/* Main Navigation */}
-            <div className="space-y-1">
-              {filteredItems.map((item) => {
-                const isActive = location.pathname === item.href
-                const Icon = item.icon
-                
-                return (
-                  <div key={item.href} className="relative">
-                    <Link
-                      to={item.href}
-                      className={cn(
-                        "flex items-center transition-all duration-200 group relative",
-                        open 
-                          ? "space-x-3 p-3 rounded-lg mx-0" 
-                          : "justify-center p-3 rounded-lg mx-1",
-                        isActive 
-                          ? "bg-gradient-to-r from-wendys-red to-wendys-dark-red text-white shadow-lg ring-1 ring-red-200" 
-                          : "text-gray-700 hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-gray-200"
-                      )}
-                      onMouseEnter={() => !open && setShowTooltip(item.href)}
-                      onMouseLeave={() => !open && setShowTooltip(null)}
-                    >
-                      {/* Icon Container */}
-                      <div className={cn(
-                        "flex-shrink-0 p-2 rounded-lg transition-all duration-200",
-                        isActive 
-                          ? "bg-white/20" 
-                          : "bg-gray-100 group-hover:bg-wendys-red/10 group-hover:scale-110"
-                      )}>
-                        <Icon className={cn(
-                          "h-5 w-5 transition-colors duration-200",
-                          isActive ? "text-white" : "text-gray-600 group-hover:text-wendys-red"
-                        )} />
-                      </div>
-                      
-                      {/* Text Content - Only show when expanded */}
+            {searchQuery.trim() ? (
+              // Search mode - show flat list
+              <div className="space-y-1">
+                {filteredItems.map((item) => renderNavigationItem(item, true))}
+              </div>
+            ) : (
+              // Normal mode - show categorized with collapsible sections
+              <div className="space-y-4">
+                {navigationCategories.map((category) => {
+                  const isExpanded = expandedCategories.has(category.id)
+                  
+                  return (
+                    <div key={category.id} className="space-y-2">
+                      {/* Category Header - Only show when expanded */}
                       {open && (
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <div className={cn(
-                              "font-semibold text-sm",
-                              isActive ? "text-white" : "text-gray-800"
-                            )}>
-                              {item.name}
-                            </div>
-                            {item.priority === 'high' && (
-                              <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                            )}
-                          </div>
-                          <div className={cn(
-                            "text-xs mt-1",
-                            isActive ? "text-red-100" : "text-gray-500"
-                          )}>
-                            {item.description}
-                          </div>
+                        <button
+                          onClick={() => toggleCategory(category.id)}
+                          className="flex items-center space-x-2 text-gray-500 text-xs font-medium uppercase tracking-wider hover:text-gray-700 transition-colors w-full text-left"
+                        >
+                          <category.icon className="h-4 w-4" />
+                          <span className="flex-1">{category.name}</span>
+                          {isExpanded ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3" />
+                          )}
+                        </button>
+                      )}
+                      
+                      {/* Category Items */}
+                      {isExpanded && (
+                        <div className="space-y-1">
+                          {category.items.map((item) => renderNavigationItem(item))}
                         </div>
                       )}
-                    </Link>
-
-                    {/* Tooltip for collapsed state */}
-                    {!open && showTooltip === item.href && (
-                      <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 z-50">
-                        <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                          <div className="font-medium">{item.name}</div>
-                          <div className="text-gray-300 text-xs mt-1">{item.description}</div>
-                          <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
             {/* No Results Message */}
             {searchQuery.trim() && filteredItems.length === 0 && (
