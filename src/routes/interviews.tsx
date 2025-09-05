@@ -297,7 +297,6 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
 
     for (const upload of fileUploads) {
       try {
-        const fileExt = upload.file.name.split('.').pop()
         const fileName = `${interviewId}/${upload.file.name}`
         const filePath = `interview-attachments/${fileName}`
 
