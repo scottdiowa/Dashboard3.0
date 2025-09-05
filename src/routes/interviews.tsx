@@ -432,116 +432,6 @@ function InterviewsPage() {
 
 
 
-    if (!storeId) {
-      toast({ title: 'Error', description: 'No store ID available', variant: 'destructive' })
-      return
-    }
-
-    try {
-      console.log('🔍 === COMPREHENSIVE ATTACHMENT DEBUG ===')
-      console.log('🏪 Store ID:', storeId)
-      console.log('👤 User ID:', userId)
-      
-      // Check if interview_attachments table exists
-      console.log('📋 Checking interview_attachments table...')
-      const { error: tableError } = await supabase
-        .from('interview_attachments')
-        .select('id')
-        .limit(1)
-
-      if (tableError) {
-        console.error('❌ Table check failed:', tableError)
-        toast({ 
-          title: 'Table Missing', 
-          description: `interview_attachments table may not exist: ${tableError.message}`, 
-          variant: 'destructive' 
-        })
-        return
-      }
-      console.log('✅ interview_attachments table exists')
-      
-      // Check database records
-      console.log('📊 Checking database records...')
-      const { data: dbAttachments, error: dbError } = await supabase
-        .from('interview_attachments')
-        .select('*')
-        .eq('store_id', storeId)
-
-      if (dbError) {
-        console.error('❌ Database query error:', dbError)
-        toast({ title: 'Database Error', description: dbError.message, variant: 'destructive' })
-        return
-      }
-
-      console.log('📊 Database attachments found:', dbAttachments?.length || 0)
-      console.log('📊 Database records:', dbAttachments)
-
-      // Check storage bucket
-      console.log('📁 Checking storage bucket...')
-      const { data: storageFiles, error: storageError } = await supabase.storage
-        .from('interview-attachments')
-        .list('', { limit: 100 })
-
-      if (storageError) {
-        console.error('❌ Storage error:', storageError)
-        toast({ title: 'Storage Error', description: storageError.message, variant: 'destructive' })
-        return
-      }
-
-      console.log('📁 Storage files found:', storageFiles?.length || 0)
-      console.log('📁 Storage files:', storageFiles)
-
-      // Check current interviews data
-      console.log('📋 Checking current interviews data...')
-      console.log('📋 Current interviews state:', interviews)
-      console.log('📋 Interviews with attachments:', interviews.filter(i => i.attachments && i.attachments.length > 0))
-
-      // Check for mismatches
-      const dbFilePaths = dbAttachments?.map(a => a.file_path) || []
-      const storageFilePaths = storageFiles?.map(f => f.name) || []
-
-      console.log('🔗 Database file paths:', dbFilePaths)
-      console.log('🔗 Storage file paths:', storageFilePaths)
-
-      const missingInStorage = dbFilePaths.filter(path => !storageFilePaths.includes(path))
-      const missingInDb = storageFilePaths.filter(path => !dbFilePaths.includes(path))
-
-      if (missingInStorage.length > 0) {
-        console.warn('⚠️ Files in database but missing in storage:', missingInStorage)
-      }
-      if (missingInDb.length > 0) {
-        console.warn('⚠️ Files in storage but missing in database:', missingInDb)
-      }
-
-      // Summary
-      const summary = {
-        tableExists: true,
-        dbRecords: dbAttachments?.length || 0,
-        storageFiles: storageFiles?.length || 0,
-        interviewsWithAttachments: interviews.filter(i => i.attachments && i.attachments.length > 0).length,
-        missingInStorage: missingInStorage.length,
-        missingInDb: missingInDb.length
-      }
-
-      console.log('📊 === DEBUG SUMMARY ===')
-      console.log('📊 Table exists:', summary.tableExists)
-      console.log('📊 Database records:', summary.dbRecords)
-      console.log('📊 Storage files:', summary.storageFiles)
-      console.log('📊 Interviews with attachments:', summary.interviewsWithAttachments)
-      console.log('📊 Missing in storage:', summary.missingInStorage)
-      console.log('📊 Missing in database:', summary.missingInDb)
-
-      toast({ 
-        title: 'Debug Complete', 
-        description: `DB: ${summary.dbRecords}, Storage: ${summary.storageFiles}, UI: ${summary.interviewsWithAttachments}`,
-        variant: 'default'
-      })
-
-    } catch (error) {
-      console.error('❌ Debug error:', error)
-      toast({ title: 'Debug Error', description: 'Check console for details', variant: 'destructive' })
-    }
-  }
 
   // Find existing calendar event for interview
   const findCalendarEvent = async (interviewId: string) => {
@@ -1028,10 +918,10 @@ function InterviewsPage() {
           >
             Refresh
           </Button>
-          <Button onClick={() => setIsAddDrawerOpen(true)} className="wendys-button">
-            <Plus className="h-4 w-4 mr-2" />
-            Schedule Interview
-          </Button>
+        <Button onClick={() => setIsAddDrawerOpen(true)} className="wendys-button">
+          <Plus className="h-4 w-4 mr-2" />
+          Schedule Interview
+        </Button>
         </div>
       </div>
 
@@ -1356,16 +1246,16 @@ function InterviewsPage() {
                             ({(upload.file.size / 1024 / 1024).toFixed(2)} MB)
                           </span>
                         </div>
-                        <Button
-                          type="button"
+                  <Button
+                    type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFileUpload(upload.id)}
                           className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
                         >
                           <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+                  </Button>
+                </div>
                     ))}
                   </div>
                 )}
