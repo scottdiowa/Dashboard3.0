@@ -421,23 +421,29 @@ export function GoalsPage() {
     const salesStatus = calculateGoalStatus(actuals.totalSales, formValues.sales_target, false)
     const salesTrend = calculateTrend(actuals.totalSales, historical.lastWeek)
     
-    // Labor metrics (for percentage goals, show how close to target, not how much exceeded)
-    const laborProgress = formValues.labor_target_pct > 0 
+    // Labor metrics (for percentage goals where lower is better)
+    const laborProgress = formValues.labor_target_pct > 0 && actuals.avgLaborPct > 0
       ? Math.max(0, Math.min(100, (formValues.labor_target_pct / actuals.avgLaborPct) * 100))
+      : formValues.labor_target_pct > 0 && actuals.avgLaborPct === 0
+      ? 100 // If actual is 0 and we have a target, we're doing great
       : 0
     const laborStatus = calculateGoalStatus(actuals.avgLaborPct, formValues.labor_target_pct, true)
     const laborTrend = calculateTrend(actuals.avgLaborPct, historical.lastWeek)
     
-    // Waste metrics (for percentage goals, show how close to target, not how much exceeded)
-    const wasteProgress = formValues.waste_target_pct > 0 
+    // Waste metrics (for percentage goals where lower is better)
+    const wasteProgress = formValues.waste_target_pct > 0 && actuals.wastePct > 0
       ? Math.max(0, Math.min(100, (formValues.waste_target_pct / actuals.wastePct) * 100))
+      : formValues.waste_target_pct > 0 && actuals.wastePct === 0
+      ? 100 // If actual is 0 and we have a target, we're doing great
       : 0
     const wasteStatus = calculateGoalStatus(actuals.wastePct, formValues.waste_target_pct, true)
     const wasteTrend = calculateTrend(actuals.wastePct, historical.lastWeek)
     
-    // Food variance metrics (for percentage goals, show how close to target, not how much exceeded)
-    const foodVarProgress = formValues.food_variance_target_pct > 0 
+    // Food variance metrics (for percentage goals where lower is better)
+    const foodVarProgress = formValues.food_variance_target_pct > 0 && actuals.foodVarPct > 0
       ? Math.max(0, Math.min(100, (formValues.food_variance_target_pct / actuals.foodVarPct) * 100))
+      : formValues.food_variance_target_pct > 0 && actuals.foodVarPct === 0
+      ? 100 // If actual is 0 and we have a target, we're doing great
       : 0
     const foodVarStatus = calculateGoalStatus(actuals.foodVarPct, formValues.food_variance_target_pct, true)
     const foodVarTrend = calculateTrend(actuals.foodVarPct, historical.lastWeek)
@@ -580,6 +586,11 @@ export function GoalsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (payload: GoalsFormData) => {
+      console.log('Save mutation started with payload:', payload)
+      console.log('Store ID:', storeId)
+      console.log('Scope:', scope)
+      console.log('Period:', period_start, 'to', period_end)
+      
       if (!storeId) throw new Error('No store is linked to your account. See Setup to link one.')
       const upsert = {
         store_id: storeId,
@@ -592,10 +603,14 @@ export function GoalsPage() {
         food_variance_target_pct: payload.food_variance_target_pct,
         team_notes: payload.team_notes || null,
       }
+      console.log('Upsert data:', upsert)
+      
       const { error } = await supabase
         .from('goals')
         .upsert(upsert, { onConflict: 'store_id,period_start,period_end' })
+      
       if (error) {
+        console.error('Supabase error:', error)
         const code = String((error as any).code || '')
         const msg = String((error as any).message || '')
         const isMissing = code.startsWith('42') || msg.toLowerCase().includes('relation') || msg.toLowerCase().includes('does not exist')
@@ -604,6 +619,7 @@ export function GoalsPage() {
         }
         throw error
       }
+      console.log('Goals saved successfully')
     },
     onSuccess: () => {
       toast({ title: 'Goals Saved', description: 'Goals have been successfully saved for the selected period.' })
@@ -630,7 +646,13 @@ export function GoalsPage() {
   }, [form, lastSavedValues])
 
   const handleSave = useCallback(() => {
-    form.handleSubmit(values => saveMutation.mutate(values))()
+    console.log('Save button clicked')
+    const values = form.getValues()
+    console.log('Form values:', values)
+    form.handleSubmit((values) => {
+      console.log('Form submitted with values:', values)
+      saveMutation.mutate(values)
+    })()
   }, [form, saveMutation])
 
   const handleRefresh = useCallback(() => {
@@ -819,9 +841,9 @@ export function GoalsPage() {
                 or celebrate achievements that contribute to your goals.
               </p>
             </div>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Progress Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -836,7 +858,7 @@ export function GoalsPage() {
             }))}
             unit="currency"
           />
-        </div>
+            </div>
         <div className="wendys-card p-6">
           <h3 className="text-lg font-semibold text-wendys-charcoal mb-4">Labor Efficiency Trend</h3>
           <GoalProgressChart
