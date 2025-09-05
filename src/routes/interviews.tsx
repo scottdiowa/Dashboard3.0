@@ -509,6 +509,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     if (!userId) return null
 
     try {
+      // First check if calendar_events table exists
       const { data, error } = await supabase
         .from('calendar_events')
         .select('id')
@@ -518,13 +519,13 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         .limit(1)
 
       if (error) {
-        console.error('Error finding calendar event:', error)
+        console.warn('Calendar table may not exist or has permission issues:', error.message)
         return null
       }
 
       return data && data.length > 0 ? data[0] : null
     } catch (error) {
-      console.error('Error in findCalendarEvent:', error)
+      console.warn('Calendar functionality disabled due to error:', error)
       return null
     }
   }
@@ -537,6 +538,17 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
 
     try {
+      // Check if calendar table exists first
+      const { error: tableCheckError } = await supabase
+        .from('calendar_events')
+        .select('id')
+        .limit(1)
+
+      if (tableCheckError) {
+        console.warn('Calendar table not available, skipping calendar event deletion:', tableCheckError.message)
+        return
+      }
+
       // Find existing calendar event
       const existingEvent = await findCalendarEvent(interviewId)
 
@@ -548,8 +560,8 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
           .eq('id', existingEvent.id)
 
         if (error) {
-          console.error('Error deleting calendar event:', error)
-          throw error
+          console.warn('Error deleting calendar event:', error)
+          return
         } else {
           console.log('Calendar event deleted successfully for interview:', interviewId)
           // Force immediate refetch of calendar events to refresh the calendar UI
@@ -560,8 +572,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         console.log('No calendar event found to delete for interview:', interviewId)
       }
     } catch (error) {
-      console.error('Error in deleteCalendarEvent:', error)
-      throw error
+      console.warn('Calendar deletion disabled due to error:', error)
     }
   }
 
@@ -573,6 +584,17 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
 
     try {
+      // Check if calendar table exists first
+      const { error: tableCheckError } = await supabase
+        .from('calendar_events')
+        .select('id')
+        .limit(1)
+
+      if (tableCheckError) {
+        console.warn('Calendar table not available, skipping calendar event creation:', tableCheckError.message)
+        return
+      }
+
       // Only create/update calendar events for SCHEDULED interviews
       if (interview.status !== 'SCHEDULED') {
         console.log('Interview status is not SCHEDULED, removing calendar event if it exists')
