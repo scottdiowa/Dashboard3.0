@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { Plus, Search, Calendar, Phone, Mail, MapPin, FileText, Edit, Trash2 } from 'lucide-react'
+import { Plus, Search, Calendar, Phone, Mail, MapPin, FileText, Edit, Trash2, Upload, Download, Eye, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,6 +28,20 @@ interface Interview {
   status: string
   notes: string | null
   created_at: string
+  attachments?: InterviewAttachment[]
+}
+
+// Interview attachment type
+interface InterviewAttachment {
+  id: string
+  interview_id: string
+  store_id: string
+  file_name: string
+  file_path: string
+  file_size: number
+  file_type: string
+  uploaded_by: string
+  created_at: string
 }
 
 // Simple form data type
@@ -42,6 +56,13 @@ interface InterviewFormData {
   notes: string
 }
 
+// File upload type
+interface FileUpload {
+  file: File
+  id: string
+  progress: number
+}
+
 function InterviewsPage() {
   const [storeId, setStoreId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
@@ -51,6 +72,8 @@ function InterviewsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [isLoading, setIsLoading] = useState(false)
+  const [fileUploads, setFileUploads] = useState<FileUpload[]>([])
+  const [isUploading, setIsUploading] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -208,7 +231,10 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
       setIsLoading(true)
       const { data, error } = await supabase
         .from('interviews')
-        .select('*')
+        .select(`
+          *,
+          attachments:interview_attachments(*)
+        `)
         .eq('store_id', storeId)
         .order('interview_date', { ascending: true })
         .order('interview_time', { ascending: true })
@@ -241,6 +267,140 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
       notes: ''
     })
     setEditingInterview(null)
+    setFileUploads([])
+  }
+
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files) return
+
+    const newUploads: FileUpload[] = Array.from(files).map(file => ({
+      file,
+      id: Math.random().toString(36).substr(2, 9),
+      progress: 0
+    }))
+
+    setFileUploads(prev => [...prev, ...newUploads])
+  }
+
+  // Remove file from upload queue
+  const removeFileUpload = (id: string) => {
+    setFileUploads(prev => prev.filter(upload => upload.id !== id))
+  }
+
+  // Upload files to Supabase Storage
+  const uploadFiles = async (interviewId: string): Promise<InterviewAttachment[]> => {
+    if (!userId || !storeId) throw new Error('User or store not authenticated')
+
+    const uploadedAttachments: InterviewAttachment[] = []
+
+    for (const upload of fileUploads) {
+      try {
+        const fileExt = upload.file.name.split('.').pop()
+        const fileName = `${interviewId}/${upload.file.name}`
+        const filePath = `interview-attachments/${fileName}`
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from('interview-attachments')
+          .upload(filePath, upload.file)
+
+        if (uploadError) throw uploadError
+
+        // Create database record
+        const { data: attachment, error: dbError } = await supabase
+          .from('interview_attachments')
+          .insert([{
+            interview_id: interviewId,
+            store_id: storeId,
+            file_name: upload.file.name,
+            file_path: filePath,
+            file_size: upload.file.size,
+            file_type: upload.file.type,
+            uploaded_by: userId
+          }])
+          .select()
+          .single()
+
+        if (dbError) throw dbError
+
+        uploadedAttachments.push(attachment)
+      } catch (error) {
+        console.error('Error uploading file:', upload.file.name, error)
+        throw error
+      }
+    }
+
+    return uploadedAttachments
+  }
+
+  // Download attachment
+  const downloadAttachment = async (attachment: InterviewAttachment) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('interview-attachments')
+        .download(attachment.file_path)
+
+      if (error) throw error
+
+      const url = URL.createObjectURL(data)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = attachment.file_name
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading file:', error)
+      toast({ title: 'Error', description: 'Failed to download file', variant: 'destructive' })
+    }
+  }
+
+  // Delete attachment
+  const deleteAttachment = async (attachmentId: string, filePath: string) => {
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('interview-attachments')
+        .remove([filePath])
+
+      if (storageError) throw storageError
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('interview_attachments')
+        .delete()
+        .eq('id', attachmentId)
+
+      if (dbError) throw dbError
+
+      toast({ title: 'Success', description: 'Attachment deleted successfully' })
+      
+      // Refresh interviews to update the UI
+      if (storeId) fetchInterviews(storeId)
+    } catch (error) {
+      console.error('Error deleting attachment:', error)
+      toast({ title: 'Error', description: 'Failed to delete attachment', variant: 'destructive' })
+    }
+  }
+
+  // Preview attachment
+  const previewAttachment = async (attachment: InterviewAttachment) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('interview-attachments')
+        .download(attachment.file_path)
+
+      if (error) throw error
+
+      const url = URL.createObjectURL(data)
+      window.open(url, '_blank')
+    } catch (error) {
+      console.error('Error previewing file:', error)
+      toast({ title: 'Error', description: 'Failed to preview file', variant: 'destructive' })
+    }
   }
 
   // Find existing calendar event for interview
@@ -533,6 +693,24 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             console.warn('Calendar event creation failed, but interview was saved:', calendarError)
             // Don't show error toast here since interview was successfully saved
           }
+
+          // Upload files if any
+          if (fileUploads.length > 0) {
+            try {
+              setIsUploading(true)
+              await uploadFiles(newInterview.id)
+              setFileUploads([])
+            } catch (uploadError) {
+              console.warn('File upload failed, but interview was saved:', uploadError)
+              toast({ 
+                title: 'Warning', 
+                description: 'Interview saved but some files failed to upload. You can try uploading them again by editing the interview.',
+                variant: 'destructive' 
+              })
+            } finally {
+              setIsUploading(false)
+            }
+          }
         }
 
         toast({ title: 'Success!', description: formData.status === 'SCHEDULED' ? 'Interview scheduled and added to calendar!' : 'Interview saved successfully!' })
@@ -732,6 +910,58 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                           {interview.notes}
                         </div>
                       )}
+                      
+                      {/* Attachments */}
+                      {interview.attachments && interview.attachments.length > 0 && (
+                        <div className="mt-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <FileText className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-700">Attachments:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {interview.attachments.map((attachment) => (
+                              <div
+                                key={attachment.id}
+                                className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-2 text-sm"
+                              >
+                                <FileText className="h-4 w-4 text-gray-500" />
+                                <span className="text-gray-700 truncate max-w-32">
+                                  {attachment.file_name}
+                                </span>
+                                <div className="flex space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => previewAttachment(attachment)}
+                                    className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
+                                    title="Preview"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => downloadAttachment(attachment)}
+                                    className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
+                                    title="Download"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteAttachment(attachment.id, attachment.file_path)}
+                                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex space-x-2 ml-4">
                       <Button
@@ -873,6 +1103,71 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                   placeholder="Additional notes about the candidate..."
                   rows={3}
                 />
+              </div>
+
+              {/* File Upload Section */}
+              <div className="space-y-2">
+                <Label htmlFor="attachments">Attachments</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                  <input
+                    id="attachments"
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+                  />
+                  <label
+                    htmlFor="attachments"
+                    className="cursor-pointer flex flex-col items-center justify-center space-y-2"
+                  >
+                    <Upload className="h-8 w-8 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      Click to upload files or drag and drop
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      PDF, DOC, DOCX, TXT, JPG, PNG, GIF (Max 10MB each)
+                    </span>
+                  </label>
+                </div>
+
+                {/* File Upload Queue */}
+                {fileUploads.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-gray-700">Files to upload:</h4>
+                    {fileUploads.map((upload) => (
+                      <div
+                        key={upload.id}
+                        className="flex items-center justify-between bg-gray-50 rounded-lg p-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm text-gray-700">{upload.file.name}</span>
+                          <span className="text-xs text-gray-500">
+                            ({(upload.file.size / 1024 / 1024).toFixed(2)} MB)
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFileUpload(upload.id)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Uploading indicator */}
+                {isUploading && (
+                  <div className="flex items-center space-x-2 text-sm text-blue-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span>Uploading files...</span>
+                  </div>
+                )}
               </div>
 
                             <div className="flex justify-between items-center pt-4">
