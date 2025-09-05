@@ -312,6 +312,10 @@ export function VideoManager({ selectedVideo, onVideoChange, onVideosUpdate }: V
               controls
               className="w-full rounded-lg"
               style={{ maxHeight: '60vh' }}
+              onError={(e) => {
+                console.error('Video preview error:', e);
+                console.error('Preview video src:', `/${previewVideo}`);
+              }}
             >
               Your browser does not support the video tag.
             </video>

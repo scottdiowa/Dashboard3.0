@@ -445,14 +445,24 @@ function OverviewPage() {
         <div className="flex justify-center">
           <video 
             key={selectedVideo} // Force re-render when video changes
+            src={`/${selectedVideo}`}
             autoPlay 
             loop 
             muted 
             playsInline
             className="w-full rounded-lg shadow-lg opacity-60"
             style={{ height: '200px', objectFit: 'cover', width: '100%', pointerEvents: 'none' }}
+            onError={(e) => {
+              console.error('Video loading error:', e);
+              console.error('Video src:', `/${selectedVideo}`);
+            }}
+            onLoadStart={() => {
+              console.log('Video loading started:', `/${selectedVideo}`);
+            }}
+            onCanPlay={() => {
+              console.log('Video can play:', `/${selectedVideo}`);
+            }}
           >
-            <source src={`/${selectedVideo}`} type="video/mp4" />
             <p>Your browser does not support the video tag.</p>
           </video>
         </div>
