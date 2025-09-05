@@ -508,6 +508,43 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
   }
 
+  // Force refresh interviews with detailed logging
+  const forceRefreshInterviews = async () => {
+    if (!storeId) {
+      toast({ title: 'Error', description: 'No store ID available', variant: 'destructive' })
+      return
+    }
+
+    console.log('🔄 Force refreshing interviews...')
+    console.log('🏪 Store ID:', storeId)
+    
+    try {
+      setIsLoading(true)
+      
+      // Clear current state
+      setInterviews([])
+      
+      // Fetch fresh data
+      await fetchInterviews(storeId)
+      
+      console.log('✅ Force refresh completed')
+      toast({ 
+        title: 'Refresh Complete', 
+        description: 'Interviews data refreshed from database', 
+        variant: 'default' 
+      })
+    } catch (error) {
+      console.error('❌ Force refresh error:', error)
+      toast({ 
+        title: 'Refresh Error', 
+        description: 'Failed to refresh interviews', 
+        variant: 'destructive' 
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Debug function to check attachments
   const debugAttachments = async () => {
     if (!storeId) {
@@ -516,34 +553,63 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
 
     try {
-      console.log('🔍 Debugging attachments for store:', storeId)
+      console.log('🔍 === COMPREHENSIVE ATTACHMENT DEBUG ===')
+      console.log('🏪 Store ID:', storeId)
+      console.log('👤 User ID:', userId)
+      
+      // Check if interview_attachments table exists
+      console.log('📋 Checking interview_attachments table...')
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('interview_attachments')
+        .select('id')
+        .limit(1)
+
+      if (tableError) {
+        console.error('❌ Table check failed:', tableError)
+        toast({ 
+          title: 'Table Missing', 
+          description: `interview_attachments table may not exist: ${tableError.message}`, 
+          variant: 'destructive' 
+        })
+        return
+      }
+      console.log('✅ interview_attachments table exists')
       
       // Check database records
+      console.log('📊 Checking database records...')
       const { data: dbAttachments, error: dbError } = await supabase
         .from('interview_attachments')
         .select('*')
         .eq('store_id', storeId)
 
       if (dbError) {
-        console.error('Database error:', dbError)
+        console.error('❌ Database query error:', dbError)
         toast({ title: 'Database Error', description: dbError.message, variant: 'destructive' })
         return
       }
 
-      console.log('📊 Database attachments:', dbAttachments)
+      console.log('📊 Database attachments found:', dbAttachments?.length || 0)
+      console.log('📊 Database records:', dbAttachments)
 
-      // Check storage files
+      // Check storage bucket
+      console.log('📁 Checking storage bucket...')
       const { data: storageFiles, error: storageError } = await supabase.storage
         .from('interview-attachments')
         .list('', { limit: 100 })
 
       if (storageError) {
-        console.error('Storage error:', storageError)
+        console.error('❌ Storage error:', storageError)
         toast({ title: 'Storage Error', description: storageError.message, variant: 'destructive' })
         return
       }
 
+      console.log('📁 Storage files found:', storageFiles?.length || 0)
       console.log('📁 Storage files:', storageFiles)
+
+      // Check current interviews data
+      console.log('📋 Checking current interviews data...')
+      console.log('📋 Current interviews state:', interviews)
+      console.log('📋 Interviews with attachments:', interviews.filter(i => i.attachments && i.attachments.length > 0))
 
       // Check for mismatches
       const dbFilePaths = dbAttachments?.map(a => a.file_path) || []
@@ -562,14 +628,32 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         console.warn('⚠️ Files in storage but missing in database:', missingInDb)
       }
 
+      // Summary
+      const summary = {
+        tableExists: true,
+        dbRecords: dbAttachments?.length || 0,
+        storageFiles: storageFiles?.length || 0,
+        interviewsWithAttachments: interviews.filter(i => i.attachments && i.attachments.length > 0).length,
+        missingInStorage: missingInStorage.length,
+        missingInDb: missingInDb.length
+      }
+
+      console.log('📊 === DEBUG SUMMARY ===')
+      console.log('📊 Table exists:', summary.tableExists)
+      console.log('📊 Database records:', summary.dbRecords)
+      console.log('📊 Storage files:', summary.storageFiles)
+      console.log('📊 Interviews with attachments:', summary.interviewsWithAttachments)
+      console.log('📊 Missing in storage:', summary.missingInStorage)
+      console.log('📊 Missing in database:', summary.missingInDb)
+
       toast({ 
         title: 'Debug Complete', 
-        description: `Found ${dbAttachments?.length || 0} DB records, ${storageFiles?.length || 0} storage files. Check console for details.`,
+        description: `DB: ${summary.dbRecords}, Storage: ${summary.storageFiles}, UI: ${summary.interviewsWithAttachments}`,
         variant: 'default'
       })
 
     } catch (error) {
-      console.error('Debug error:', error)
+      console.error('❌ Debug error:', error)
       toast({ title: 'Debug Error', description: 'Check console for details', variant: 'destructive' })
     }
   }
@@ -1417,6 +1501,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                     className="text-xs"
                   >
                     Check Storage
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={forceRefreshInterviews}
+                    className="text-xs"
+                  >
+                    Force Refresh
                   </Button>
                 </div>
 
