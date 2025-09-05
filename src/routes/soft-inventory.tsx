@@ -11,7 +11,6 @@ import {
   Package, 
   TrendingUp, 
   TrendingDown, 
-  Calendar, 
   BarChart3,
   Plus,
   Edit,
@@ -247,7 +246,14 @@ function SoftInventoryPage() {
           bestVariance: 0,
           worstVariance: 0
         }
-      }), {})
+      }), {} as Record<string, {
+        totalEntries: number;
+        averageVariance: number;
+        positiveVariance: number;
+        negativeVariance: number;
+        bestVariance: number;
+        worstVariance: number;
+      }>)
     }
 
     return FOOD_ITEMS.reduce((acc, item) => {
@@ -264,7 +270,14 @@ function SoftInventoryPage() {
         worstVariance: Math.min(...variances)
       }
       return acc
-    }, {} as Record<string, any>)
+    }, {} as Record<string, {
+      totalEntries: number;
+      averageVariance: number;
+      positiveVariance: number;
+      negativeVariance: number;
+      bestVariance: number;
+      worstVariance: number;
+    }>)
   }, [varianceData])
 
   // Calculate overall metrics
@@ -547,7 +560,7 @@ function SoftInventoryPage() {
                   />
                   <Legend />
                   <ReferenceLine y={0} stroke="#666" strokeDasharray="2 2" />
-                  {FOOD_ITEMS.map((item, index) => (
+                  {FOOD_ITEMS.map((item) => (
                     <Line 
                       key={item.key}
                       type="monotone" 
