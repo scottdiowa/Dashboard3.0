@@ -106,3 +106,22 @@ export const weekendingSheetSchema = z.object({
 })
 
 export type WeekendingSheetFormData = z.infer<typeof weekendingSheetSchema>
+
+// Soft Inventory Variance Schema
+export const softInventoryVarianceSchema = z.object({
+  business_date: z.string().min(1, "Business date is required"),
+  bacon_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  beef_4oz_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  beef_small_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  chicken_breaded_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  chicken_diced_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  chicken_nuggets_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  chicken_nuggets_spicy_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  chicken_patty_3_1_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  chicken_breaded_spicy_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  chicken_strips_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  sausage_patty_variance: z.coerce.number().min(-100, "Variance percentage must be at least -100%").max(100, "Variance percentage must be at most 100%").default(0),
+  notes: z.string().optional()
+})
+
+export type SoftInventoryVarianceFormData = z.infer<typeof softInventoryVarianceSchema>

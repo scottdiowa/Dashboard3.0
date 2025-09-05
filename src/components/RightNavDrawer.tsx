@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, MessageSquare, FileText, Settings } from 'lucide-react'
+import { BarChart3, Calendar, Users, TrendingUp, Wrench, Target, Search, Star, MessageSquare, FileText, Settings, Package } from 'lucide-react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useState, useMemo, forwardRef } from 'react'
@@ -57,6 +57,14 @@ const navigationItems = [
     href: '/smg',
     icon: MessageSquare,
     description: 'Customer feedback metrics',
+    category: 'main',
+    priority: 'medium'
+  },
+  {
+    name: 'Soft Inventory',
+    href: '/soft-inventory',
+    icon: Package,
+    description: 'Track variance percentages',
     category: 'main',
     priority: 'medium'
   },

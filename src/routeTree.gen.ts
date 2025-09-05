@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WeekendingSheetRouteImport } from './routes/weekending-sheet'
+import { Route as SoftInventoryRouteImport } from './routes/soft-inventory'
 import { Route as SmgRouteImport } from './routes/smg'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -23,6 +24,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const WeekendingSheetRoute = WeekendingSheetRouteImport.update({
   id: '/weekending-sheet',
   path: '/weekending-sheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SoftInventoryRoute = SoftInventoryRouteImport.update({
+  id: '/soft-inventory',
+  path: '/soft-inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SmgRoute = SmgRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/smg': typeof SmgRoute
+  '/soft-inventory': typeof SoftInventoryRoute
   '/weekending-sheet': typeof WeekendingSheetRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/smg': typeof SmgRoute
+  '/soft-inventory': typeof SoftInventoryRoute
   '/weekending-sheet': typeof WeekendingSheetRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/smg': typeof SmgRoute
+  '/soft-inventory': typeof SoftInventoryRoute
   '/weekending-sheet': typeof WeekendingSheetRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/setup'
     | '/smg'
+    | '/soft-inventory'
     | '/weekending-sheet'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/setup'
     | '/smg'
+    | '/soft-inventory'
     | '/weekending-sheet'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/setup'
     | '/smg'
+    | '/soft-inventory'
     | '/weekending-sheet'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
   SmgRoute: typeof SmgRoute
+  SoftInventoryRoute: typeof SoftInventoryRoute
   WeekendingSheetRoute: typeof WeekendingSheetRoute
 }
 
@@ -167,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/weekending-sheet'
       fullPath: '/weekending-sheet'
       preLoaderRoute: typeof WeekendingSheetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/soft-inventory': {
+      id: '/soft-inventory'
+      path: '/soft-inventory'
+      fullPath: '/soft-inventory'
+      preLoaderRoute: typeof SoftInventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/smg': {
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
   SmgRoute: SmgRoute,
+  SoftInventoryRoute: SoftInventoryRoute,
   WeekendingSheetRoute: WeekendingSheetRoute,
 }
 export const routeTree = rootRouteImport

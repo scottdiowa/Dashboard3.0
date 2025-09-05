@@ -201,9 +201,50 @@ CREATE POLICY "Users can update their store's SMG data" ON smg_daily
 CREATE POLICY "Users can delete their store's SMG data" ON smg_daily
   FOR DELETE USING (store_id = (SELECT store_id FROM users WHERE id = auth.uid()));
 
+-- Create Soft Inventory Analysis table
+CREATE TABLE soft_inventory_variance (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  store_id uuid NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  business_date date NOT NULL,
+  bacon_variance numeric NOT NULL DEFAULT 0,
+  beef_4oz_variance numeric NOT NULL DEFAULT 0,
+  beef_small_variance numeric NOT NULL DEFAULT 0,
+  chicken_breaded_variance numeric NOT NULL DEFAULT 0,
+  chicken_diced_variance numeric NOT NULL DEFAULT 0,
+  chicken_nuggets_variance numeric NOT NULL DEFAULT 0,
+  chicken_nuggets_spicy_variance numeric NOT NULL DEFAULT 0,
+  chicken_patty_3_1_variance numeric NOT NULL DEFAULT 0,
+  chicken_breaded_spicy_variance numeric NOT NULL DEFAULT 0,
+  chicken_strips_variance numeric NOT NULL DEFAULT 0,
+  sausage_patty_variance numeric NOT NULL DEFAULT 0,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create unique index on store_id and business_date
+CREATE UNIQUE INDEX ON soft_inventory_variance (store_id, business_date);
+
+-- Enable RLS for soft_inventory_variance
+ALTER TABLE soft_inventory_variance ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for soft_inventory_variance
+CREATE POLICY "Users can view their store's soft inventory variance data" ON soft_inventory_variance
+  FOR SELECT USING (store_id = (SELECT store_id FROM users WHERE id = auth.uid()));
+
+CREATE POLICY "Users can insert soft inventory variance data for their store" ON soft_inventory_variance
+  FOR INSERT WITH CHECK (store_id = (SELECT store_id FROM users WHERE id = auth.uid()));
+
+CREATE POLICY "Users can update their store's soft inventory variance data" ON soft_inventory_variance
+  FOR UPDATE USING (store_id = (SELECT store_id FROM users WHERE id = auth.uid()));
+
+CREATE POLICY "Users can delete their store's soft inventory variance data" ON soft_inventory_variance
+  FOR DELETE USING (store_id = (SELECT store_id FROM users WHERE id = auth.uid()));
+
 -- Create indexes for better performance
 CREATE INDEX idx_omega_daily_store_date ON omega_daily(store_id, business_date);
 CREATE INDEX idx_interviews_store_date ON interviews(store_id, interview_date);
 CREATE INDEX idx_smg_entries_store_date ON smg_entries(store_id, entry_date);
 CREATE INDEX idx_smg_daily_store_date ON smg_daily(store_id, date);
 CREATE INDEX idx_hires_interview_id ON hires(interview_id);
+CREATE INDEX idx_soft_inventory_variance_store_date ON soft_inventory_variance(store_id, business_date);

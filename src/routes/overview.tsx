@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useMemo } from 'react'
 
-import { TrendingUp, TrendingDown, DollarSign, Clock } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Clock, Package } from 'lucide-react'
 
 import { OverviewKpiCard } from '@/components/overview/OverviewKpiCard'
 import { SalesTrendChart } from '@/components/overview/SalesTrendChart'
@@ -193,6 +193,55 @@ function OverviewPage() {
     enabled: !!storeId,
   })
 
+  // Fetch Soft Inventory Variance data for the selected date range
+  const { data: softInventoryData = [] } = useQuery({
+    queryKey: ['overview-soft-inventory', storeId, dateRangeFilter?.start, dateRangeFilter?.end],
+    queryFn: async () => {
+      if (!storeId) return []
+
+      let query = supabase
+        .from('soft_inventory_variance')
+        .select('*')
+        .eq('store_id', storeId)
+        
+      if (dateRangeFilter) {
+        query = query
+          .gte('business_date', dateRangeFilter.start)
+          .lte('business_date', dateRangeFilter.end)
+      }
+      
+      const { data, error } = await query
+        .order('business_date', { ascending: true })
+
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!storeId,
+  })
+
+  // Fetch Soft Inventory Variance data for charts (last 30 days)
+  const { data: softInventoryChartData = [] } = useQuery({
+    queryKey: ['overview-soft-inventory-charts', storeId],
+    queryFn: async () => {
+      if (!storeId) return []
+
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const startDate = thirtyDaysAgo.toISOString().slice(0, 10)
+
+      const { data, error } = await supabase
+        .from('soft_inventory_variance')
+        .select('*')
+        .eq('store_id', storeId)
+        .gte('business_date', startDate)
+        .order('business_date', { ascending: true })
+
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!storeId,
+  })
+
   // Calculate aggregated metrics from the fetched data
   const aggregatedData = useMemo(() => {
     if (omegaData.length === 0) {
@@ -297,6 +346,43 @@ function OverviewPage() {
       avgFoodVariance,
     }
   }, [weekendingData])
+
+  // Calculate aggregated metrics from soft inventory variance data
+  const softInventoryAggregatedData = useMemo(() => {
+    if (softInventoryData.length === 0) {
+      return {
+        totalEntries: 0,
+        averageVariance: 0,
+        positiveVariance: 0,
+        negativeVariance: 0,
+        bestVariance: 0,
+        worstVariance: 0
+      }
+    }
+
+    // Define food items to calculate overall metrics
+    const foodItems = [
+      'bacon_variance', 'beef_4oz_variance', 'beef_small_variance', 'chicken_breaded_variance',
+      'chicken_diced_variance', 'chicken_nuggets_variance', 'chicken_nuggets_spicy_variance',
+      'chicken_patty_3_1_variance', 'chicken_breaded_spicy_variance', 'chicken_strips_variance',
+      'sausage_patty_variance'
+    ]
+
+    const allVariances = softInventoryData.flatMap(entry => 
+      foodItems.map(item => entry[item as keyof typeof entry] as number)
+    )
+    const positiveVariances = allVariances.filter(v => v > 0)
+    const negativeVariances = allVariances.filter(v => v < 0)
+
+    return {
+      totalEntries: softInventoryData.length,
+      averageVariance: allVariances.reduce((sum, v) => sum + v, 0) / allVariances.length,
+      positiveVariance: positiveVariances.length,
+      negativeVariance: negativeVariances.length,
+      bestVariance: Math.max(...allVariances),
+      worstVariance: Math.min(...allVariances)
+    }
+  }, [softInventoryData])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -523,6 +609,43 @@ function OverviewPage() {
         />
       </div>
 
+      {/* Soft Inventory Analysis KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <OverviewKpiCard
+          title="Soft Inventory Entries"
+          value={softInventoryAggregatedData.totalEntries}
+          format="number"
+          icon={Package}
+          trend="neutral"
+        />
+
+        <OverviewKpiCard
+          title="Avg Variance %"
+          value={softInventoryAggregatedData.averageVariance}
+          format="percentage"
+          icon={TrendingUp}
+          trend={softInventoryAggregatedData.averageVariance >= 0 ? "up" : "down"}
+        />
+
+        <OverviewKpiCard
+          title="Positive Variance Days"
+          value={softInventoryAggregatedData.positiveVariance}
+          format="number"
+          icon={TrendingUp}
+          trend="neutral"
+          suffix="days"
+        />
+
+        <OverviewKpiCard
+          title="Negative Variance Days"
+          value={softInventoryAggregatedData.negativeVariance}
+          format="number"
+          icon={TrendingDown}
+          trend="neutral"
+          suffix="days"
+        />
+      </div>
+
       {/* Charts Section */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <ChartCard
@@ -641,7 +764,7 @@ function OverviewPage() {
       {/* Data Integration Summary */}
       <div className="wendys-card">
         <h3 className="text-lg font-semibold text-wendys-charcoal mb-4">Data Integration Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">Daily Entries</p>
             <p className="text-2xl font-bold text-wendys-charcoal">{omegaData.length}</p>
@@ -653,6 +776,11 @@ function OverviewPage() {
             <p className="text-xs text-gray-500">Weekending records</p>
           </div>
           <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">Soft Inventory</p>
+            <p className="text-2xl font-bold text-wendys-charcoal">{softInventoryData.length}</p>
+            <p className="text-xs text-gray-500">Variance entries</p>
+          </div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">Total Sales</p>
             <p className="text-2xl font-bold text-wendys-charcoal">
               {formatCurrency(aggregatedData.netSales + weekendingAggregatedData.weeklyNetSales)}
@@ -662,11 +790,99 @@ function OverviewPage() {
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">Data Coverage</p>
             <p className="text-2xl font-bold text-wendys-charcoal">
-              {omegaData.length > 0 || weekendingData.length > 0 ? 'Active' : 'No Data'}
+              {omegaData.length > 0 || weekendingData.length > 0 || softInventoryData.length > 0 ? 'Active' : 'No Data'}
             </p>
             <p className="text-xs text-gray-500">System status</p>
           </div>
         </div>
+      </div>
+
+      {/* Soft Inventory Variance Chart */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <ChartCard
+          title="Soft Inventory Variance Trend"
+          subtitle="Last 30 days"
+          loading={!softInventoryChartData.length && !error}
+          error={error?.message}
+        >
+          {softInventoryChartData.length > 0 ? (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-center">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">
+                      {softInventoryAggregatedData.positiveVariance}
+                    </p>
+                    <p className="text-sm text-green-600">Positive Variances</p>
+                  </div>
+                  <div className="p-4 bg-red-50 rounded-lg">
+                    <p className="text-2xl font-bold text-red-600">
+                      {softInventoryAggregatedData.negativeVariance}
+                    </p>
+                    <p className="text-sm text-red-600">Negative Variances</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-2xl font-bold text-gray-600">
+                      {softInventoryChartData.length}
+                    </p>
+                    <p className="text-sm text-gray-600">Total Entries</p>
+                  </div>
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600">
+                      {softInventoryAggregatedData.averageVariance.toFixed(1)}%
+                    </p>
+                    <p className="text-sm text-blue-600">Average</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="text-center">
+                <p>No soft inventory data available</p>
+                <p className="text-sm mt-1">Add entries in Soft Inventory Analysis to see trends</p>
+              </div>
+            </div>
+          )}
+        </ChartCard>
+
+        <ChartCard
+          title="Soft Inventory Performance"
+          subtitle="Variance distribution"
+          loading={!softInventoryChartData.length && !error}
+          error={error?.message}
+        >
+          {softInventoryChartData.length > 0 ? (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-center">
+                <div className="space-y-4">
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg">
+                    <p className="text-3xl font-bold text-green-600">
+                      {softInventoryAggregatedData.bestVariance.toFixed(1)}%
+                    </p>
+                    <p className="text-sm text-green-600">Best Variance</p>
+                  </div>
+                  <div className="p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-lg">
+                    <p className="text-3xl font-bold text-red-600">
+                      {softInventoryAggregatedData.worstVariance.toFixed(1)}%
+                    </p>
+                    <p className="text-sm text-red-600">Worst Variance</p>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {softInventoryChartData.length} entries tracked
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="text-center">
+                <p>No soft inventory data available</p>
+                <p className="text-sm mt-1">Add entries in Soft Inventory Analysis to see performance</p>
+              </div>
+            </div>
+          )}
+        </ChartCard>
       </div>
 
       {/* OSAT Snapshot and Interviews */}
