@@ -20,7 +20,7 @@ const goalsSchema = z.object({
   sales_target: z.coerce.number().min(0),
   labor_target_pct: z.coerce.number().min(0),
   waste_target_pct: z.coerce.number().min(0),
-  food_variance_target_pct: z.coerce.number().min(0),
+  food_variance_target_pct: z.coerce.number(), // Allow negative numbers for food variance
   team_notes: z.string().optional(),
 })
 
@@ -150,7 +150,7 @@ export function GoalsPage() {
       sales_target: 0,
       labor_target_pct: 25,
       waste_target_pct: 0.5,
-      food_variance_target_pct: 0.5,
+      food_variance_target_pct: -0.5, // Default to negative (under budget is good)
       team_notes: '',
     },
   })
@@ -439,12 +439,32 @@ export function GoalsPage() {
     const wasteStatus = calculateGoalStatus(actuals.wastePct, formValues.waste_target_pct, true)
     const wasteTrend = calculateTrend(actuals.wastePct, historical.lastWeek)
     
-    // Food variance metrics (for percentage goals where lower is better)
-    const foodVarProgress = formValues.food_variance_target_pct > 0 && actuals.foodVarPct > 0
-      ? Math.max(0, Math.min(100, (formValues.food_variance_target_pct / actuals.foodVarPct) * 100))
-      : formValues.food_variance_target_pct > 0 && actuals.foodVarPct === 0
-      ? 100 // If actual is 0 and we have a target, we're doing great
-      : 0
+    // Food variance metrics (can be negative - negative is good, positive is bad)
+    const foodVarProgress = (() => {
+      if (formValues.food_variance_target_pct === 0) return 0
+      
+      // If target is negative (good) and actual is negative (good), show progress
+      if (formValues.food_variance_target_pct < 0 && actuals.foodVarPct < 0) {
+        // Both negative - closer to 0 is better, so show how close we are to target
+        return Math.max(0, Math.min(100, (Math.abs(actuals.foodVarPct) / Math.abs(formValues.food_variance_target_pct)) * 100))
+      }
+      
+      // If target is positive (bad) and actual is positive (bad), show progress
+      if (formValues.food_variance_target_pct > 0 && actuals.foodVarPct > 0) {
+        // Both positive - closer to 0 is better, so show how close we are to target
+        return Math.max(0, Math.min(100, (formValues.food_variance_target_pct / actuals.foodVarPct) * 100))
+      }
+      
+      // If actual is 0 (perfect) and we have any target, we're doing great
+      if (actuals.foodVarPct === 0) return 100
+      
+      // Mixed signs - if actual is better than target, show good progress
+      if (actuals.foodVarPct < formValues.food_variance_target_pct) {
+        return Math.max(0, Math.min(100, 100 - Math.abs(actuals.foodVarPct - formValues.food_variance_target_pct) * 10))
+      }
+      
+      return 0
+    })()
     const foodVarStatus = calculateGoalStatus(actuals.foodVarPct, formValues.food_variance_target_pct, true)
     const foodVarTrend = calculateTrend(actuals.foodVarPct, historical.lastWeek)
 
@@ -667,7 +687,7 @@ export function GoalsPage() {
       sales_target: 0,
       labor_target_pct: 25,
       waste_target_pct: 0.5,
-      food_variance_target_pct: 0.5,
+      food_variance_target_pct: -0.5, // Default to negative (under budget is good)
       team_notes: '',
     })
     setIsEditing(true)
