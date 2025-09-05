@@ -328,7 +328,16 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
       try {
         console.log(`📤 Uploading file: ${upload.file.name} (${upload.file.size} bytes)`)
         
-        const filePath = `${interviewId}/${upload.file.name}`
+        // Sanitize filename to avoid special characters that cause storage issues
+        const sanitizedFileName = upload.file.name
+          .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscores
+          .replace(/_+/g, '_') // Replace multiple underscores with single
+          .replace(/^_|_$/g, '') // Remove leading/trailing underscores
+        
+        const filePath = `${interviewId}/${sanitizedFileName}`
+        
+        console.log('🧹 Original filename:', upload.file.name)
+        console.log('🧹 Sanitized filename:', sanitizedFileName)
 
         console.log('📂 File path:', filePath)
 
@@ -348,7 +357,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         const attachmentData = {
           interview_id: interviewId,
           store_id: storeId,
-          file_name: upload.file.name,
+          file_name: sanitizedFileName, // Use sanitized filename for storage
           file_path: filePath,
           file_size: upload.file.size,
           file_type: upload.file.type,
