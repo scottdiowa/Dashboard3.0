@@ -119,56 +119,6 @@ function InterviewsPage() {
     getStoreId()
   }, [])
 
-  // Function to migrate the database enum to match schema.sql
-  const migrateDatabaseEnum = async () => {
-    try {
-      console.log('🔧 Starting database enum migration...')
-
-      // Step 1: Update any existing 'DONE' values to 'COMPLETED'
-      console.log('Step 1: Updating DONE to COMPLETED...')
-      const { error: updateError } = await supabase
-        .from('interviews')
-        .update({ status: 'COMPLETED' })
-        .eq('status', 'DONE')
-
-      if (updateError) {
-        console.log('Update error (may be expected if no DONE values exist):', updateError.message)
-      } else {
-        console.log('✅ Updated existing DONE values to COMPLETED')
-      }
-
-      // Step 2: Try to drop and recreate the enum type
-      console.log('Step 2: Attempting enum recreation via RPC...')
-
-      // This would require a custom RPC function in Supabase
-      // For now, we'll provide instructions to the user
-
-      console.log('⚠️  Manual migration required!')
-      console.log('Please run this SQL in your Supabase SQL Editor:')
-      console.log(`
--- Migration SQL to run in Supabase Dashboard:
-DROP TYPE IF EXISTS interview_status CASCADE;
-CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED','REJECTED');
-
--- Then recreate the interviews table if it was dropped:
--- (Copy the CREATE TABLE statement from schema.sql)
-      `)
-
-      toast({
-        title: 'Migration Instructions',
-        description: 'Check console for SQL commands to run in Supabase Dashboard',
-        variant: 'default'
-      })
-
-    } catch (error) {
-      console.error('Migration error:', error)
-      toast({
-        title: 'Migration Error',
-        description: 'See console for details',
-        variant: 'destructive'
-      })
-    }
-  }
 
   // Function to check what enum values the database actually accepts
   const checkDatabaseEnumValues = async (storeId: string) => {
@@ -1651,66 +1601,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                 )}
               </div>
 
-                            <div className="flex justify-between items-center pt-4">
-                <div className="flex space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => checkDatabaseEnumValues(storeId!)}
-                    className="text-xs"
-                  >
-                    Test Enum
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={migrateDatabaseEnum}
-                    className="text-xs"
-                  >
-                    Migrate DB
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={debugAttachments}
-                    className="text-xs"
-                  >
-                    Debug Attachments
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={checkCalendarTable}
-                    className="text-xs"
-                  >
-                    Check Calendar
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={checkStorageBucket}
-                    className="text-xs"
-                  >
-                    Check Storage
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={forceRefreshInterviews}
-                    className="text-xs"
-                  >
-                    Force Refresh
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={testAttachmentUpload}
-                    className="text-xs"
-                  >
-                    Test Upload
-                  </Button>
-                </div>
-
+                            <div className="flex justify-end items-center pt-4">
                 <div className="flex space-x-3">
                   <Button
                     type="button"
