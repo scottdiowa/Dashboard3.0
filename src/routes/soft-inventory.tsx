@@ -241,18 +241,22 @@ function SoftInventoryPage() {
         [item.key]: {
           totalEntries: 0,
           averageVariance: 0,
+          averageAbsVariance: 0,
           positiveVariance: 0,
           negativeVariance: 0,
           bestVariance: 0,
-          worstVariance: 0
+          worstVariance: 0,
+          worstAbsVariance: 0
         }
       }), {} as Record<string, {
         totalEntries: number;
         averageVariance: number;
+        averageAbsVariance: number;
         positiveVariance: number;
         negativeVariance: number;
         bestVariance: number;
         worstVariance: number;
+        worstAbsVariance: number;
       }>)
     }
 
@@ -260,23 +264,28 @@ function SoftInventoryPage() {
       const variances = varianceData.map(entry => entry[item.key as keyof typeof entry] as number)
       const positiveVariances = variances.filter(v => v > 0)
       const negativeVariances = variances.filter(v => v < 0)
+      const absVariances = variances.map(v => Math.abs(v))
 
       acc[item.key] = {
         totalEntries: varianceData.length,
         averageVariance: variances.reduce((sum, v) => sum + v, 0) / variances.length,
+        averageAbsVariance: absVariances.reduce((sum, v) => sum + v, 0) / absVariances.length,
         positiveVariance: positiveVariances.length,
         negativeVariance: negativeVariances.length,
-        bestVariance: Math.max(...variances),
-        worstVariance: Math.min(...variances)
+        bestVariance: Math.min(...absVariances), // Closest to zero is best
+        worstVariance: Math.max(...absVariances), // Farthest from zero is worst
+        worstAbsVariance: Math.max(...absVariances)
       }
       return acc
     }, {} as Record<string, {
       totalEntries: number;
       averageVariance: number;
+      averageAbsVariance: number;
       positiveVariance: number;
       negativeVariance: number;
       bestVariance: number;
       worstVariance: number;
+      worstAbsVariance: number;
     }>)
   }, [varianceData])
 
@@ -286,6 +295,7 @@ function SoftInventoryPage() {
       return {
         totalEntries: 0,
         averageVariance: 0,
+        averageAbsVariance: 0,
         positiveVariance: 0,
         negativeVariance: 0
       }
@@ -296,10 +306,12 @@ function SoftInventoryPage() {
     )
     const positiveVariances = allVariances.filter(v => v > 0)
     const negativeVariances = allVariances.filter(v => v < 0)
+    const absVariances = allVariances.map(v => Math.abs(v))
 
     return {
       totalEntries: varianceData.length,
       averageVariance: allVariances.reduce((sum, v) => sum + v, 0) / allVariances.length,
+      averageAbsVariance: absVariances.reduce((sum, v) => sum + v, 0) / absVariances.length,
       positiveVariance: positiveVariances.length,
       negativeVariance: negativeVariances.length
     }
@@ -311,7 +323,9 @@ function SoftInventoryPage() {
       date: entry.business_date,
       formattedDate: format(new Date(entry.business_date), 'MMM dd'),
       ...FOOD_ITEMS.reduce((acc, item) => {
-        acc[item.label] = entry[item.key as keyof typeof entry] as number
+        const value = entry[item.key as keyof typeof entry] as number
+        acc[item.label] = Math.abs(value) // Use absolute values for better visualization
+        acc[`${item.label}_original`] = value // Keep original for tooltip
         return acc
       }, {} as Record<string, number>)
     }))
@@ -509,10 +523,11 @@ function SoftInventoryPage() {
 
         <OverviewKpiCard
           title="Average Variance"
-          value={overallMetrics.averageVariance}
+          value={overallMetrics.averageAbsVariance}
           format="percentage"
           icon={BarChart3}
-          trend={overallMetrics.averageVariance >= 0 ? "up" : "down"}
+          trend="neutral"
+          subtitle="Lower is better"
         />
 
         <OverviewKpiCard
@@ -538,7 +553,7 @@ function SoftInventoryPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <ChartCard
           title="Variance Trend by Item"
-          subtitle="Last 30 days"
+          subtitle="Last 30 days - Higher values indicate worse performance"
           loading={!chartEntries.length && !error}
           error={error?.message}
         >
@@ -555,10 +570,20 @@ function SoftInventoryPage() {
                   <YAxis 
                     tick={{ fontSize: 12 }}
                     tickFormatter={(value) => `${value}%`}
+                    label={{ value: 'Variance % (Higher = Worse)', angle: -90, position: 'insideLeft' }}
                   />
                   <Tooltip 
-                    formatter={(value: any, name: string) => [`${value}%`, name]}
+                    formatter={(value: any, name: string, props: any) => {
+                      const originalValue = props.payload?.[`${name}_original`]
+                      return [`${originalValue !== undefined ? originalValue : value}%`, name]
+                    }}
                     labelFormatter={(label) => `Date: ${label}`}
+                    contentStyle={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
                   />
                   <Legend />
                   <ReferenceLine y={0} stroke="#666" strokeDasharray="2 2" />
@@ -568,9 +593,10 @@ function SoftInventoryPage() {
                       type="monotone" 
                       dataKey={item.label}
                       stroke={item.color}
-                      strokeWidth={2}
-                      dot={{ fill: item.color, strokeWidth: 2, r: 3 }}
-                      activeDot={{ r: 5, stroke: item.color, strokeWidth: 2 }}
+                      strokeWidth={2.5}
+                      dot={{ fill: item.color, strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: item.color, strokeWidth: 2, fill: '#fff' }}
+                      connectNulls={false}
                     />
                   ))}
                 </LineChart>
@@ -604,15 +630,29 @@ function SoftInventoryPage() {
                           {item.label}
                         </span>
                         <span className={`text-sm font-bold ${
-                          data.averageVariance > 0 ? 'text-green-600' : 
-                          data.averageVariance < 0 ? 'text-red-600' : 'text-gray-600'
+                          data.averageAbsVariance <= 5 ? 'text-green-600' : 
+                          data.averageAbsVariance <= 15 ? 'text-yellow-600' : 'text-red-600'
                         }`}>
-                          {data.averageVariance > 0 ? '+' : ''}{data.averageVariance.toFixed(1)}%
+                          {data.averageAbsVariance.toFixed(1)}%
                         </span>
                       </div>
                       <div className="flex justify-between text-xs text-gray-500">
                         <span>Best: {data.bestVariance.toFixed(1)}%</span>
                         <span>Worst: {data.worstVariance.toFixed(1)}%</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              data.averageAbsVariance <= 5 ? 'bg-green-500' : 
+                              data.averageAbsVariance <= 15 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${Math.min((data.averageAbsVariance / 30) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Avg. Abs. Variance (Lower = Better)
+                        </div>
                       </div>
                     </div>
                   )
