@@ -12,6 +12,7 @@ interface OverviewKpiCardProps {
   icon: LucideIcon
   trend?: 'up' | 'down' | 'neutral'
   suffix?: string
+  subtitle?: string
   sparklineData?: Array<{ value: number }>
   className?: string
 }
@@ -25,6 +26,7 @@ export function OverviewKpiCard({
   icon: Icon,
   trend,
   suffix,
+  subtitle,
   sparklineData,
   className
 }: OverviewKpiCardProps) {
@@ -107,6 +109,12 @@ export function OverviewKpiCard({
                 {suffix && format !== 'percentage' && <span className="ml-1">{suffix}</span>}
               </span>
               <span className="text-xs text-gray-500">{deltaLabel}</span>
+            </div>
+          )}
+
+          {subtitle && (
+            <div className="mt-2">
+              <p className="text-xs text-gray-500">{subtitle}</p>
             </div>
           )}
         </div>
