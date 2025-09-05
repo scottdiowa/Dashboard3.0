@@ -229,6 +229,8 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
   const fetchInterviews = async (storeId: string) => {
     try {
       setIsLoading(true)
+      console.log('🔍 Fetching interviews for store:', storeId)
+      
       const { data, error } = await supabase
         .from('interviews')
         .select(`
@@ -239,7 +241,17 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         .order('interview_date', { ascending: true })
         .order('interview_time', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error fetching interviews:', error)
+        throw error
+      }
+
+      console.log('📊 Fetched interviews:', data)
+      console.log('📎 Attachments found:', data?.map(i => ({ 
+        interview: i.candidate_name, 
+        attachments: i.attachments?.length || 0 
+      })))
+
       setInterviews(data || [])
     } catch (error) {
       console.error('Error fetching interviews:', error)
@@ -293,44 +305,67 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
   const uploadFiles = async (interviewId: string): Promise<InterviewAttachment[]> => {
     if (!userId || !storeId) throw new Error('User or store not authenticated')
 
+    console.log('🚀 Starting file upload process for interview:', interviewId)
+    console.log('📁 Files to upload:', fileUploads.map(f => f.file.name))
+    console.log('👤 User ID:', userId)
+    console.log('🏪 Store ID:', storeId)
+
     const uploadedAttachments: InterviewAttachment[] = []
 
     for (const upload of fileUploads) {
       try {
+        console.log(`📤 Uploading file: ${upload.file.name} (${upload.file.size} bytes)`)
+        
         const fileName = `${interviewId}/${upload.file.name}`
         const filePath = `interview-attachments/${fileName}`
+
+        console.log('📂 File path:', filePath)
 
         // Upload to Supabase Storage
         const { error: uploadError } = await supabase.storage
           .from('interview-attachments')
           .upload(filePath, upload.file)
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          console.error('❌ Storage upload error:', uploadError)
+          throw uploadError
+        }
+
+        console.log('✅ File uploaded to storage successfully')
 
         // Create database record
+        const attachmentData = {
+          interview_id: interviewId,
+          store_id: storeId,
+          file_name: upload.file.name,
+          file_path: filePath,
+          file_size: upload.file.size,
+          file_type: upload.file.type,
+          uploaded_by: userId
+        }
+
+        console.log('💾 Creating database record:', attachmentData)
+
         const { data: attachment, error: dbError } = await supabase
           .from('interview_attachments')
-          .insert([{
-            interview_id: interviewId,
-            store_id: storeId,
-            file_name: upload.file.name,
-            file_path: filePath,
-            file_size: upload.file.size,
-            file_type: upload.file.type,
-            uploaded_by: userId
-          }])
+          .insert([attachmentData])
           .select()
           .single()
 
-        if (dbError) throw dbError
+        if (dbError) {
+          console.error('❌ Database insert error:', dbError)
+          throw dbError
+        }
 
+        console.log('✅ Database record created:', attachment)
         uploadedAttachments.push(attachment)
       } catch (error) {
-        console.error('Error uploading file:', upload.file.name, error)
+        console.error('❌ Error uploading file:', upload.file.name, error)
         throw error
       }
     }
 
+    console.log('🎉 All files uploaded successfully:', uploadedAttachments)
     return uploadedAttachments
   }
 
@@ -432,6 +467,41 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
       toast({ 
         title: 'Calendar Table Error', 
         description: 'Failed to check calendar table', 
+        variant: 'destructive' 
+      })
+      return false
+    }
+  }
+
+  // Check if storage bucket exists
+  const checkStorageBucket = async () => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('interview-attachments')
+        .list('', { limit: 1 })
+
+      if (error) {
+        console.error('Storage bucket error:', error)
+        toast({ 
+          title: 'Storage Bucket Error', 
+          description: `Bucket may not exist: ${error.message}`, 
+          variant: 'destructive' 
+        })
+        return false
+      }
+
+      console.log('✅ Storage bucket exists and is accessible')
+      toast({ 
+        title: 'Storage Bucket OK', 
+        description: 'interview-attachments bucket is accessible', 
+        variant: 'default' 
+      })
+      return true
+    } catch (error) {
+      console.error('Storage bucket check error:', error)
+      toast({ 
+        title: 'Storage Bucket Error', 
+        description: 'Failed to check storage bucket', 
         variant: 'destructive' 
       })
       return false
@@ -819,12 +889,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
 
           // Upload files if any
           if (fileUploads.length > 0) {
+            console.log('📤 Starting file upload process...')
             try {
               setIsUploading(true)
               await uploadFiles(newInterview.id)
               setFileUploads([])
+              console.log('✅ File upload completed successfully')
             } catch (uploadError) {
-              console.warn('File upload failed, but interview was saved:', uploadError)
+              console.error('❌ File upload failed:', uploadError)
               toast({ 
                 title: 'Warning', 
                 description: 'Interview saved but some files failed to upload. You can try uploading them again by editing the interview.',
@@ -833,6 +905,8 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             } finally {
               setIsUploading(false)
             }
+          } else {
+            console.log('ℹ️ No files to upload')
           }
         }
 
@@ -1335,6 +1409,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                     className="text-xs"
                   >
                     Check Calendar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={checkStorageBucket}
+                    className="text-xs"
+                  >
+                    Check Storage
                   </Button>
                 </div>
 
