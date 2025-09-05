@@ -402,6 +402,42 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
   }
 
+  // Check if calendar_events table exists
+  const checkCalendarTable = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('id')
+        .limit(1)
+
+      if (error) {
+        console.error('Calendar table error:', error)
+        toast({ 
+          title: 'Calendar Table Error', 
+          description: `Table may not exist: ${error.message}`, 
+          variant: 'destructive' 
+        })
+        return false
+      }
+
+      console.log('✅ Calendar table exists and is accessible')
+      toast({ 
+        title: 'Calendar Table OK', 
+        description: 'Calendar events table is accessible', 
+        variant: 'default' 
+      })
+      return true
+    } catch (error) {
+      console.error('Calendar table check error:', error)
+      toast({ 
+        title: 'Calendar Table Error', 
+        description: 'Failed to check calendar table', 
+        variant: 'destructive' 
+      })
+      return false
+    }
+  }
+
   // Debug function to check attachments
   const debugAttachments = async () => {
     if (!storeId) {
@@ -479,14 +515,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
         .eq('created_by', userId)
         .ilike('title', `Interview: %`)
         .ilike('description', `%interviewId: ${interviewId}%`)
-        .single()
+        .limit(1)
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      if (error) {
         console.error('Error finding calendar event:', error)
         return null
       }
 
-      return data
+      return data && data.length > 0 ? data[0] : null
     } catch (error) {
       console.error('Error in findCalendarEvent:', error)
       return null
@@ -1269,6 +1305,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                     className="text-xs"
                   >
                     Debug Attachments
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={checkCalendarTable}
+                    className="text-xs"
+                  >
+                    Check Calendar
                   </Button>
                 </div>
 
