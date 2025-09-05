@@ -402,6 +402,72 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
     }
   }
 
+  // Debug function to check attachments
+  const debugAttachments = async () => {
+    if (!storeId) {
+      toast({ title: 'Error', description: 'No store ID available', variant: 'destructive' })
+      return
+    }
+
+    try {
+      console.log('🔍 Debugging attachments for store:', storeId)
+      
+      // Check database records
+      const { data: dbAttachments, error: dbError } = await supabase
+        .from('interview_attachments')
+        .select('*')
+        .eq('store_id', storeId)
+
+      if (dbError) {
+        console.error('Database error:', dbError)
+        toast({ title: 'Database Error', description: dbError.message, variant: 'destructive' })
+        return
+      }
+
+      console.log('📊 Database attachments:', dbAttachments)
+
+      // Check storage files
+      const { data: storageFiles, error: storageError } = await supabase.storage
+        .from('interview-attachments')
+        .list('', { limit: 100 })
+
+      if (storageError) {
+        console.error('Storage error:', storageError)
+        toast({ title: 'Storage Error', description: storageError.message, variant: 'destructive' })
+        return
+      }
+
+      console.log('📁 Storage files:', storageFiles)
+
+      // Check for mismatches
+      const dbFilePaths = dbAttachments?.map(a => a.file_path) || []
+      const storageFilePaths = storageFiles?.map(f => f.name) || []
+
+      console.log('🔗 Database file paths:', dbFilePaths)
+      console.log('🔗 Storage file paths:', storageFilePaths)
+
+      const missingInStorage = dbFilePaths.filter(path => !storageFilePaths.includes(path))
+      const missingInDb = storageFilePaths.filter(path => !dbFilePaths.includes(path))
+
+      if (missingInStorage.length > 0) {
+        console.warn('⚠️ Files in database but missing in storage:', missingInStorage)
+      }
+      if (missingInDb.length > 0) {
+        console.warn('⚠️ Files in storage but missing in database:', missingInDb)
+      }
+
+      toast({ 
+        title: 'Debug Complete', 
+        description: `Found ${dbAttachments?.length || 0} DB records, ${storageFiles?.length || 0} storage files. Check console for details.`,
+        variant: 'default'
+      })
+
+    } catch (error) {
+      console.error('Debug error:', error)
+      toast({ title: 'Debug Error', description: 'Check console for details', variant: 'destructive' })
+    }
+  }
+
   // Find existing calendar event for interview
   const findCalendarEvent = async (interviewId: string) => {
     if (!userId) return null
@@ -819,10 +885,19 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             Manage candidate interviews and track the hiring process
           </p>
         </div>
-        <Button onClick={() => setIsAddDrawerOpen(true)} className="wendys-button">
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Interview
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            onClick={() => storeId && fetchInterviews(storeId)} 
+            variant="outline"
+            className="text-sm"
+          >
+            Refresh
+          </Button>
+          <Button onClick={() => setIsAddDrawerOpen(true)} className="wendys-button">
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule Interview
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filter */}
@@ -1186,6 +1261,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
                     className="text-xs"
                   >
                     Migrate DB
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={debugAttachments}
+                    className="text-xs"
+                  >
+                    Debug Attachments
                   </Button>
                 </div>
 
