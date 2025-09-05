@@ -1087,6 +1087,34 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
             console.warn('Calendar event update failed, but interview was saved:', calendarError)
             // Don't show error toast here since interview was successfully saved
           }
+
+          // Upload files if any
+          console.log('📤 Checking for files to upload:', fileUploads.length, 'files')
+          if (fileUploads.length > 0) {
+            console.log('📤 Starting file upload process...')
+            console.log('📤 Files to upload:', fileUploads.map(f => f.file.name))
+            try {
+              setIsUploading(true)
+              await uploadFiles(updatedInterview.id)
+              setFileUploads([])
+              console.log('✅ File upload completed successfully')
+              
+              // Refresh interviews to show the new attachments
+              console.log('🔄 Refreshing interviews to show attachments...')
+              await fetchInterviews(storeId)
+            } catch (uploadError) {
+              console.error('❌ File upload failed:', uploadError)
+              toast({ 
+                title: 'Warning', 
+                description: 'Interview updated but some files failed to upload. You can try uploading them again by editing the interview.',
+                variant: 'destructive' 
+              })
+            } finally {
+              setIsUploading(false)
+            }
+          } else {
+            console.log('ℹ️ No files to upload - fileUploads array is empty')
+          }
         }
 
         toast({ title: 'Success!', description: formData.status === 'SCHEDULED' ? 'Interview updated and calendar synced!' : 'Interview updated and removed from calendar!' })
