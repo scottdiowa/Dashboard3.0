@@ -443,27 +443,27 @@ export function GoalsPage() {
     const foodVarProgress = (() => {
       if (formValues.food_variance_target_pct === 0) return 0
       
-      // If target is negative (good) and actual is negative (good), show progress
-      if (formValues.food_variance_target_pct < 0 && actuals.foodVarPct < 0) {
-        // Both negative - closer to 0 is better, so show how close we are to target
-        return Math.max(0, Math.min(100, (Math.abs(actuals.foodVarPct) / Math.abs(formValues.food_variance_target_pct)) * 100))
-      }
+      // For food variance, we want to be as close to 0 as possible (perfect budget)
+      // Progress is based on how close we are to 0, not to the target
       
-      // If target is positive (bad) and actual is positive (bad), show progress
-      if (formValues.food_variance_target_pct > 0 && actuals.foodVarPct > 0) {
-        // Both positive - closer to 0 is better, so show how close we are to target
-        return Math.max(0, Math.min(100, (formValues.food_variance_target_pct / actuals.foodVarPct) * 100))
-      }
-      
-      // If actual is 0 (perfect) and we have any target, we're doing great
+      // If actual is 0 (perfect budget), we're at 100%
       if (actuals.foodVarPct === 0) return 100
       
-      // Mixed signs - if actual is better than target, show good progress
-      if (actuals.foodVarPct < formValues.food_variance_target_pct) {
-        return Math.max(0, Math.min(100, 100 - Math.abs(actuals.foodVarPct - formValues.food_variance_target_pct) * 10))
-      }
+      // Calculate progress based on distance from 0
+      const targetDistance = Math.abs(formValues.food_variance_target_pct)
+      const actualDistance = Math.abs(actuals.foodVarPct)
       
-      return 0
+      // If we're closer to 0 than the target, we're doing better than expected
+      if (actualDistance < targetDistance) {
+        // We're doing better than target - show progress over 100%
+        return Math.min(150, 100 + ((targetDistance - actualDistance) / targetDistance) * 50)
+      } else if (actualDistance === targetDistance) {
+        // We're exactly at the target
+        return 100
+      } else {
+        // We're further from 0 than the target - show progress under 100%
+        return Math.max(0, (targetDistance / actualDistance) * 100)
+      }
     })()
     const foodVarStatus = calculateGoalStatus(actuals.foodVarPct, formValues.food_variance_target_pct, true)
     const foodVarTrend = calculateTrend(actuals.foodVarPct, historical.lastWeek)
