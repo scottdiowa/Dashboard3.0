@@ -285,7 +285,14 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
-    if (!files) return
+    console.log('📁 File selection event:', files)
+    
+    if (!files) {
+      console.log('❌ No files selected')
+      return
+    }
+
+    console.log('📁 Files selected:', Array.from(files).map(f => f.name))
 
     const newUploads: FileUpload[] = Array.from(files).map(file => ({
       file,
@@ -293,7 +300,12 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
       progress: 0
     }))
 
-    setFileUploads(prev => [...prev, ...newUploads])
+    console.log('📁 New uploads created:', newUploads.map(u => u.file.name))
+    setFileUploads(prev => {
+      const updated = [...prev, ...newUploads]
+      console.log('📁 Total uploads now:', updated.length)
+      return updated
+    })
   }
 
   // Remove file from upload queue
@@ -1092,8 +1104,10 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
           }
 
           // Upload files if any
+          console.log('📤 Checking for files to upload:', fileUploads.length, 'files')
           if (fileUploads.length > 0) {
             console.log('📤 Starting file upload process...')
+            console.log('📤 Files to upload:', fileUploads.map(f => f.file.name))
             try {
               setIsUploading(true)
               await uploadFiles(newInterview.id)
@@ -1110,7 +1124,7 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
               setIsUploading(false)
             }
           } else {
-            console.log('ℹ️ No files to upload')
+            console.log('ℹ️ No files to upload - fileUploads array is empty')
           }
         }
 
