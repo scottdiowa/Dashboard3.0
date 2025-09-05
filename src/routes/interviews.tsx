@@ -381,7 +381,13 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
       }
     }
 
-    console.log('🎉 All files uploaded successfully:', uploadedAttachments)
+    console.log('🎉 All files uploaded successfully!')
+    console.log('📊 Upload summary:')
+    console.log('  - Files processed:', fileUploads.length)
+    console.log('  - Files uploaded to storage:', uploadedAttachments.length)
+    console.log('  - Database records created:', uploadedAttachments.length)
+    console.log('📎 Uploaded attachments:', uploadedAttachments.map(a => ({ id: a.id, file_name: a.file_name, file_path: a.file_path })))
+    
     return uploadedAttachments
   }
 
@@ -1112,6 +1118,10 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
               await uploadFiles(newInterview.id)
               setFileUploads([])
               console.log('✅ File upload completed successfully')
+              
+              // Refresh interviews to show the new attachments
+              console.log('🔄 Refreshing interviews to show attachments...')
+              await refetch()
             } catch (uploadError) {
               console.error('❌ File upload failed:', uploadError)
               toast({ 
