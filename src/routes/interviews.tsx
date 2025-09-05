@@ -581,9 +581,29 @@ CREATE TYPE interview_status AS ENUM ('SCHEDULED','COMPLETED','NO_SHOW','HIRED',
 
       console.log('✅ Storage upload successful')
 
+      // Get a real interview ID for testing
+      const { data: realInterviews, error: interviewError } = await supabase
+        .from('interviews')
+        .select('id')
+        .eq('store_id', storeId)
+        .limit(1)
+
+      if (interviewError || !realInterviews || realInterviews.length === 0) {
+        console.error('❌ No interviews found for testing:', interviewError)
+        toast({ 
+          title: 'Test Failed', 
+          description: 'No interviews found to test with. Create an interview first.', 
+          variant: 'destructive' 
+        })
+        return
+      }
+
+      const testInterviewId = realInterviews[0].id
+      console.log('📋 Using real interview ID for test:', testInterviewId)
+
       // Test database insert
       const testAttachmentData = {
-        interview_id: '00000000-0000-0000-0000-000000000000', // Dummy ID
+        interview_id: testInterviewId,
         store_id: storeId,
         file_name: testFile.name,
         file_path: testPath,
